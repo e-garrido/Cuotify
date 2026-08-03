@@ -1,0 +1,273 @@
+:root {
+  --bg: #f2f3f7;
+  --bg-alt: #e9ebf0;
+  --card: #ffffff;
+  --text: #111318;
+  --text-2: #6b7280;
+  --accent: #0a84ff;
+  --accent-soft: rgba(10, 132, 255, 0.12);
+  --red: #ff453a;
+  --green: #30d158;
+  --border: rgba(0, 0, 0, 0.06);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --radius: 20px;
+  --tabbar-h: 84px;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --bg-alt: #0c0c0f;
+    --card: #1c1c1e;
+    --text: #f5f5f7;
+    --text-2: #98989d;
+    --accent: #0a84ff;
+    --border: rgba(255, 255, 255, 0.08);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Pantallas ---------- */
+.screen {
+  position: fixed;
+  inset: 0 0 var(--tabbar-h) 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 0.8, 0.36, 1);
+  pointer-events: none;
+  visibility: hidden;
+}
+.screen.is-active { opacity: 1; transform: none; pointer-events: auto; visibility: visible; }
+.screen.is-left { transform: translateX(-40px); }
+
+/* ---------- Cabecera ---------- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px 4px;
+}
+.hello-top { font-size: 13px; color: var(--text-2); font-weight: 600; letter-spacing: 0.2px; }
+.hello { display: flex; align-items: center; gap: 10px; }
+.logo-avatar {
+  width: 42px; height: 42px; border-radius: 12px;
+  object-fit: cover; box-shadow: var(--shadow);
+}
+.hello-title { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+.home-title { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+.add-chip {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent); border: none; color: #fff;
+  font-size: 24px; display: grid; place-items: center;
+  box-shadow: 0 6px 16px rgba(10, 132, 255, 0.35);
+  transition: transform 0.15s ease;
+}
+.add-chip:active { transform: scale(0.9); }
+.plus { line-height: 1; margin-top: -2px; }
+
+/* ---------- Contenido ---------- */
+.content { padding: 8px 16px 40px; }
+
+/* ---------- Tarjeta de saldo ---------- */
+.saldo-card {
+  background: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 100%);
+  border-radius: var(--radius);
+  color: #fff;
+  padding: 22px 20px 18px;
+  box-shadow: 0 16px 36px rgba(10, 132, 255, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+.saldo-card::after {
+  content: "";
+  position: absolute; width: 220px; height: 220px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08); top: -90px; right: -70px;
+}
+.saldo-label { font-size: 14px; font-weight: 600; opacity: 0.85; }
+.saldo-value {
+  font-size: 44px; font-weight: 800; letter-spacing: -1px;
+  margin: 6px 0 2px; font-variant-numeric: tabular-nums;
+}
+.saldo-value.negativo { color: #ffd60a; }
+.saldo-sub { font-size: 13px; opacity: 0.9; margin-bottom: 18px; }
+.saldo-row { display: flex; gap: 12px; margin-bottom: 16px; }
+.saldo-item {
+  flex: 1; background: rgba(255, 255, 255, 0.16);
+  border-radius: 14px; padding: 10px 12px;
+  backdrop-filter: blur(4px);
+}
+.saldo-item-label { font-size: 11px; opacity: 0.8; font-weight: 600; }
+.saldo-item-val { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.ghost-btn {
+  background: rgba(255, 255, 255, 0.2); border: none; color: #fff;
+  padding: 10px 16px; border-radius: 12px; font-size: 14px; font-weight: 600;
+  backdrop-filter: blur(4px); transition: background 0.15s;
+}
+.ghost-btn:active { background: rgba(255, 255, 255, 0.3); }
+
+/* ---------- Bloques ---------- */
+.block { margin-top: 24px; }
+.block-title { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 12px; }
+
+/* ---------- Próximos meses ---------- */
+.next-month-scroll {
+  display: flex; gap: 10px; overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 6px;
+  margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+  scrollbar-width: none;
+}
+.next-month-scroll::-webkit-scrollbar { display: none; }
+.month-chip {
+  flex: 0 0 120px; scroll-snap-align: start;
+  background: var(--card); border-radius: 16px; padding: 14px 12px;
+  box-shadow: var(--shadow); border: 1px solid var(--border);
+}
+.month-chip.is-now { background: var(--accent); color: #fff; border-color: transparent; }
+.month-chip.is-now .chip-amount { color: #fff; }
+.month-name { font-size: 12px; font-weight: 700; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.4px; }
+.month-chip.is-now .month-name { opacity: 0.85; }
+.chip-amount { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 4px; }
+
+/* ---------- Tarjetas de gasto ---------- */
+.gastos-list { display: flex; flex-direction: column; gap: 12px; }
+.gasto-card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--border);
+  transition: transform 0.15s ease;
+}
+.gasto-card:active { transform: scale(0.98); }
+.gasto-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.gasto-name { font-size: 16px; font-weight: 700; }
+.gasto-status {
+  font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.gasto-status.done { background: rgba(48, 209, 88, 0.15); color: var(--green); }
+.gasto-meta { display: flex; align-items: baseline; gap: 12px; margin-top: 6px; }
+.gasto-cuota { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.gasto-cuota small { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.gasto-total { font-size: 12px; color: var(--text-2); font-weight: 600; }
+
+.progress-track {
+  height: 8px; background: var(--bg-alt); border-radius: 999px;
+  margin: 14px 0 10px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #0a84ff, #5e5ce6);
+  transition: width 0.6s cubic-bezier(0.22, 0.8, 0.36, 1);
+}
+.progress-track.fin { background: rgba(48, 209, 88, 0.18); }
+.progress-track.fin .progress-fill { background: linear-gradient(90deg, #30d158, #66d4cf); }
+.gasto-foot { display: flex; align-items: center; justify-content: space-between; }
+.gasto-cuotas { font-size: 13px; color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.gasto-actions { display: flex; gap: 8px; }
+.pagar-btn {
+  background: var(--accent); color: #fff; border: none;
+  padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 700;
+  transition: transform 0.12s ease;
+}
+.pagar-btn:active { transform: scale(0.92); }
+.pagar-btn:disabled { opacity: 0.4; }
+.gasto-empty { text-align: center; color: var(--text-2); padding: 30px 0; font-size: 14px; }
+
+/* ---------- Formulario ---------- */
+.form-header { justify-content: flex-start; gap: 12px; padding-top: 12px; }
+.back-btn {
+  width: 38px; height: 38px; border-radius: 12px; border: none;
+  background: var(--bg-alt); color: var(--accent);
+  font-size: 24px; font-weight: 700; line-height: 1;
+}
+.header-spacer { flex: 1; }
+.form-title { font-size: 20px; font-weight: 800; flex: 1; text-align: left; }
+.form { display: flex; flex-direction: column; gap: 16px; padding-top: 20px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 13px; font-weight: 700; color: var(--text-2); }
+.field input {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 16px; font-size: 17px;
+  color: var(--text); outline: none; width: 100%;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s;
+}
+.field input:focus { border-color: var(--accent); }
+.field input::placeholder { color: var(--text-2); opacity: 0.6; }
+.field-actions { display: flex; }
+.delete-btn {
+  background: none; border: none; color: var(--red);
+  font-size: 15px; font-weight: 700; padding: 6px 0;
+  align-self: flex-start;
+}
+.is-hidden { display: none !important; }
+.primary-btn {
+  margin-top: 8px; background: var(--accent); color: #fff;
+  border: none; border-radius: 14px; padding: 16px;
+  font-size: 17px; font-weight: 800; width: 100%;
+  box-shadow: 0 12px 28px rgba(10, 132, 255, 0.35);
+  transition: transform 0.12s ease;
+}
+.primary-btn:active { transform: scale(0.97); }
+
+/* ---------- Tab bar ---------- */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: calc(var(--tabbar-h) + var(--sab));
+  padding-bottom: var(--sab);
+  background: var(--bg);
+  border-top: 0.5px solid var(--border);
+  display: flex;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.tab {
+  flex: 1; background: none; border: none; color: var(--text-2);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+}
+.tab-icon { width: 24px; height: 24px; }
+.tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1px; }
+.tab.is-active { color: var(--accent); }
+.tab:active { opacity: 0.7; }
+
+/* ---------- Hoja (sheet) ---------- */
+.sheet-backdrop[hidden] { display: none !important; }
+.sheet-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
+  display: flex; align-items: flex-end; z-index: 50;
+  animation: fadeIn 0.2s ease;
+}
+.sheet {
+  width: 100%; background: var(--card);
+  border-radius: 20px 20px 0 0;
+  padding: 10px 20px calc(24px + var(--sab));
+  display: flex; flex-direction: column; gap: 16px;
+  animation: slideUp 0.3s cubic-bezier(0.22, 0.8, 0.36, 1);
+}
+.sheet-grabber {
+  width: 40px; height: 5px; border-radius: 3px;
+  background: var(--border); align-self: center; margin-bottom: 4px;
+}
+.sheet-title { font-size: 19px; font-weight: 800; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- Utilidades ---------- */
+::-webkit-scrollbar { width: 0; height: 0; }
