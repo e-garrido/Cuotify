@@ -123,7 +123,7 @@ function go(which) {
   });
   if (which === 'resumen') renderResumen();
   if (which === 'gastos') renderGastosList();
-  if (which === 'add') setupForm();
+  if (which === 'add' && editingId === null) setupForm();
 }
 
 document.querySelectorAll('.tab').forEach((t) =>
