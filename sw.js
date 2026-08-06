@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'cuotas-v5';
+const CACHE = 'cuotas-v6';
 const ASSETS = [
   './',
   './index.html',

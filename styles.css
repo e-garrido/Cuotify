@@ -179,7 +179,16 @@ body {
 .progress-track.fin .progress-fill { background: linear-gradient(90deg, #30d158, #66d4cf); }
 .gasto-foot { display: flex; align-items: center; justify-content: space-between; }
 .gasto-cuotas { font-size: 13px; color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
-.gasto-actions { display: flex; gap: 8px; }
+.gasto-actions { display: flex; gap: 8px; align-items: center; }
+.mini-btn {
+  width: 33px; height: 33px; border-radius: 9px; border: none;
+  background: var(--bg-alt); color: var(--text-2);
+  display: grid; place-items: center;
+  transition: transform 0.12s ease, opacity 0.12s;
+}
+.mini-btn svg { width: 15px; height: 15px; }
+.mini-btn:active { transform: scale(0.9); }
+.mini-btn.danger { background: rgba(255, 69, 58, 0.12); color: var(--red); }
 .pagar-btn {
   background: var(--accent); color: #fff; border: none;
   padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 700;
@@ -226,6 +235,13 @@ body {
   transition: transform 0.12s ease;
 }
 .primary-btn:active { transform: scale(0.97); }
+.primary-btn.danger { background: var(--red); box-shadow: 0 12px 28px rgba(255, 69, 58, 0.35); }
+.secondary-btn {
+  background: var(--bg-alt); color: var(--text);
+  border: none; border-radius: 14px; padding: 16px;
+  font-size: 17px; font-weight: 800; width: 100%;
+}
+.sheet-msg { font-size: 14px; color: var(--text-2); line-height: 1.45; margin-top: -6px; }
 
 /* ---------- Tab bar ---------- */
 .tabbar {

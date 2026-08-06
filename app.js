@@ -169,10 +169,10 @@ function renderNextMonths() {
 
 /* ===================== Render: lista de gastos ===================== */
 function renderGastosList() {
-  renderGastos(document.getElementById('gastosListFull'));
+  renderGastos(document.getElementById('gastosListFull'), true);
 }
 
-function renderGastos(container) {
+function renderGastos(container, admin) {
   const all = state.gastos;
   if (!all.length) {
     container.innerHTML =
@@ -208,6 +208,16 @@ function renderGastos(container) {
       <div class="gasto-foot">
         <span class="gasto-cuotas">${p} de ${g.cuotas} cuotas${fin ? ' · finalizado' : ''}</span>
         <span class="gasto-actions">
+          ${
+            admin
+              ? `<button class="mini-btn" data-edit="${g.id}" aria-label="Editar">
+                   <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
+                 </button>
+                 <button class="mini-btn danger" data-del="${g.id}" aria-label="Eliminar">
+                   <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg>
+                 </button>`
+              : ''
+          }
           <button class="pagar-btn" data-id="${g.id}" ${fin ? 'disabled' : ''}>${fin ? 'Listo' : 'Pagar cuota'}</button>
         </span>
       </div>
@@ -215,12 +225,27 @@ function renderGastos(container) {
     card.querySelector('.gasto-name').textContent = g.nombre;
 
     card.addEventListener('click', (e) => {
-      if (!e.target.closest('.pagar-btn')) openForm(g);
+      if (e.target.closest('.pagar-btn') || e.target.closest('.mini-btn')) return;
+      openForm(g);
     });
     card.querySelector('.pagar-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       pagarCuota(g.id);
     });
+    const editBtn = card.querySelector('[data-edit]');
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openForm(g);
+      });
+    }
+    const delBtn = card.querySelector('[data-del]');
+    if (delBtn) {
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        confirmDelete(g);
+      });
+    }
 
     container.appendChild(card);
   }
@@ -309,13 +334,32 @@ function guardarForm() {
 
 function eliminarForm() {
   if (!editingId) return;
-  state.gastos = state.gastos.filter((x) => x.id !== editingId);
+  const g = state.gastos.find((x) => x.id === editingId);
+  if (g) confirmDelete(g);
+}
+
+function confirmDelete(g) {
+  document.getElementById('confirmTitle').textContent = 'Eliminar gasto';
+  document.getElementById('confirmMsg').textContent =
+    `¿Seguro que quieres eliminar «${g.nombre}»? Se perderán las ${g.cuotas - pagadas(g)} cuotas que quedan por pagar.`;
+  pendingDeleteId = g.id;
+  document.getElementById('confirmBackdrop').hidden = false;
+}
+
+function doDelete(id) {
+  state.gastos = state.gastos.filter((x) => x.id !== id);
   save();
   editingId = null;
-  go('resumen');
+  pendingDeleteId = null;
+  document.getElementById('confirmBackdrop').hidden = true;
+  const onGastos = document.querySelector('.screen.is-active').dataset.screen === 'gastos';
+  if (onGastos) renderGastosList();
+  else go('resumen');
 }
 
 /* ===================== Eventos ===================== */
+let pendingDeleteId = null;
+
 document.getElementById('btnAddHeader').addEventListener('click', () => go('add'));
 document.getElementById('fSave').addEventListener('click', guardarForm);
 document.getElementById('fDelete').addEventListener('click', eliminarForm);
@@ -324,6 +368,22 @@ document.getElementById('btnBack').addEventListener('click', () => go('resumen')
 document.querySelectorAll('[data-go="add"]').forEach((b) =>
   b.addEventListener('click', () => go('add'))
 );
+
+/* Hoja de confirmación de borrado */
+const confirmBackdrop = document.getElementById('confirmBackdrop');
+document.getElementById('btnConfirmCancel').addEventListener('click', () => {
+  confirmBackdrop.hidden = true;
+  pendingDeleteId = null;
+});
+document.getElementById('btnConfirmOk').addEventListener('click', () => {
+  if (pendingDeleteId) doDelete(pendingDeleteId);
+});
+confirmBackdrop.addEventListener('click', (e) => {
+  if (e.target === confirmBackdrop) {
+    confirmBackdrop.hidden = true;
+    pendingDeleteId = null;
+  }
+});
 
 /* Presupuesto */
 const backdrop = document.getElementById('sheetBackdrop');
