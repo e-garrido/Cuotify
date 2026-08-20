@@ -236,6 +236,13 @@ function guardarForm() {
   toast(g ? 'Gasto actualizado' : 'Gasto añadido');
   haptic();
   editandoId = null;
+
+  // Un segundo toque rápido volvería a entrar aquí con el formulario aún
+  // relleno y crearía otro gasto: cerramos la puerta un instante.
+  const btn = $('#fSave');
+  btn.disabled = true;
+  setTimeout(() => (btn.disabled = false), 600);
+
   go('resumen');
 }
 
@@ -438,8 +445,9 @@ function conectar() {
     b.addEventListener('click', () => (b.dataset.go === 'add' ? abrirNuevo() : go(b.dataset.go)))
   );
 
-  // Formulario
-  $('#fSave').addEventListener('click', guardarForm);
+  // Formulario. Ojo: #fSave es type="submit", así que NO lleva listener de
+  // click propio; si lo lleva, un clic dispara click + submit y guarda dos
+  // veces (creaba el gasto duplicado, y al editar insertaba uno nuevo).
   $('#fDelete').addEventListener('click', () => editandoId && onEliminar(editandoId));
   $('#fNombre').addEventListener('input', (e) => {
     if (!iconoManual) seleccionarIcono(sugerirIcono(e.target.value));

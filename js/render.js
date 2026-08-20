@@ -6,6 +6,7 @@ import {
   cargosMes, pendienteMes, activosEn,
   pagadas, terminado, finKey, mesesDelPlan, estaPagado,
   deudaTotal, totalPagado, pendienteTotalDe, libreEn, vencidasDe, intereses,
+  haEmpezado, adquiridos, fechaCorta,
 } from './calc.js';
 import { $, hueDe, animarCifra, sinMovimiento } from './ui.js';
 
@@ -116,7 +117,8 @@ function renderDeuda() {
   const pendiente = deudaTotal(state.gastos);
   const pagado = totalPagado(state.gastos);
 
-  if (!state.gastos.length) {
+  // Si todo lo que hay es futuro, no debes nada todavía
+  if (!adquiridos(state.gastos).length) {
     card.hidden = true;
     return;
   }
@@ -145,6 +147,7 @@ function renderDeuda() {
 function renderProximos() {
   const cont = $('#nextMonths');
   const vacio = $('#nextMonthsEmpty');
+  ocultarTip();
   cont.innerHTML = '';
 
   const meses = Array.from({ length: MESES_VISTA }, (_, i) => {
@@ -195,11 +198,10 @@ function renderProximos() {
         <span class="bar-fill"></span>
       </span>
       <span class="bar-mes"></span>
-      <span class="bar-tip" role="tooltip"></span>
     `;
     slot.querySelector('.bar-val').textContent = m.importe ? euroCorto(m.importe) : '—';
     slot.querySelector('.bar-mes').textContent = m.offset === 0 ? 'Este mes' : m.label;
-    slot.querySelector('.bar-tip').textContent =
+    slot.dataset.tip =
       `${euro(m.importe)} · ${cuotas} cuota${cuotas === 1 ? '' : 's'}` +
       (excede ? ' · supera el presupuesto' : '');
 
@@ -208,15 +210,45 @@ function renderProximos() {
     if (sinMovimiento()) fill.style.height = h;
     else requestAnimationFrame(() => (fill.style.height = h));
 
-    // En táctil no hay hover: el toque abre la etiqueta
+    slot.addEventListener('pointerenter', () => mostrarTip(slot));
+    slot.addEventListener('focus', () => mostrarTip(slot));
+    slot.addEventListener('pointerleave', ocultarTip);
+    slot.addEventListener('blur', ocultarTip);
+    // En táctil no hay hover: el toque alterna la etiqueta
     slot.addEventListener('click', () => {
-      const abierto = slot.classList.contains('is-open');
-      cont.querySelectorAll('.bar-slot').forEach((s) => s.classList.remove('is-open'));
-      slot.classList.toggle('is-open', !abierto);
+      if (slot.classList.contains('is-open')) ocultarTip();
+      else mostrarTip(slot);
     });
 
     cont.append(slot);
   }
+}
+
+/* El tooltip vive en .chart-plot, no dentro del carrusel: ese contenedor
+   tiene scroll horizontal y por tanto también recorta en vertical. Aquí lo
+   colocamos a mano sobre la barra y lo mantenemos dentro del gráfico. */
+function mostrarTip(slot) {
+  const tip = $('#chartTip');
+  const plot = slot.closest('.chart-plot');
+  if (!tip || !plot) return;
+
+  document.querySelectorAll('.bar-slot.is-open').forEach((s) => s.classList.remove('is-open'));
+  slot.classList.add('is-open');
+
+  tip.textContent = slot.dataset.tip || '';
+  tip.hidden = false;
+
+  const r = slot.getBoundingClientRect();
+  const p = plot.getBoundingClientRect();
+  const centro = r.left - p.left + r.width / 2;
+  const mitad = tip.offsetWidth / 2;
+  tip.style.left = `${Math.max(mitad, Math.min(p.width - mitad, centro))}px`;
+}
+
+function ocultarTip() {
+  const tip = $('#chartTip');
+  if (tip) tip.hidden = true;
+  document.querySelectorAll('.bar-slot.is-open').forEach((s) => s.classList.remove('is-open'));
 }
 
 /* =====================================================================
@@ -267,18 +299,20 @@ function tarjetaGasto(g, admin) {
   const quedan = Math.max(0, g.cuotas - p);
   const vencidas = vencidasDe(g).length;
   const restante = pendienteTotalDe(g);
+  const empezado = haEmpezado(g);
 
   const card = document.createElement('article');
   card.className = 'gasto-card';
   card.style.setProperty('--hue', hueDe(g.nombre));
   if (fin) card.classList.add('is-fin');
   if (vencidas) card.classList.add('is-vencido');
+  if (!empezado) card.classList.add('is-programado');
 
   card.innerHTML = `
     <div class="gasto-head">
       <span class="gasto-icono" aria-hidden="true"></span>
       <span class="gasto-name"></span>
-      <span class="gasto-status">${fin ? 'Pagado' : pct + '%'}</span>
+      <span class="gasto-status">${fin ? 'Pagado' : empezado ? pct + '%' : 'Programado'}</span>
     </div>
     <div class="gasto-meta">
       <span class="gasto-cuota"></span>
@@ -296,6 +330,7 @@ function tarjetaGasto(g, admin) {
   card.querySelector('.gasto-icono').textContent = g.icono || '🛒';
   card.querySelector('.gasto-name').textContent = g.nombre;
   card.querySelector('.gasto-status').classList.toggle('done', fin);
+  card.querySelector('.gasto-status').classList.toggle('prog', !fin && !empezado);
 
   const cuotaEl = card.querySelector('.gasto-cuota');
   cuotaEl.textContent = euro(g.cuotaMensual);
@@ -305,7 +340,9 @@ function tarjetaGasto(g, admin) {
 
   card.querySelector('.gasto-total').textContent = fin
     ? `${g.cuotas} cuotas · terminado en ${keyLabel(finKey(g))}`
-    : `quedan ${quedan} · hasta ${keyLabel(finKey(g))}`;
+    : empezado
+      ? `quedan ${quedan} · hasta ${keyLabel(finKey(g))}`
+      : `${g.cuotas} cuotas · hasta ${keyLabel(finKey(g))}`;
 
   const track = card.querySelector('.progress-track');
   track.setAttribute('aria-valuenow', String(pct));
@@ -316,7 +353,17 @@ function tarjetaGasto(g, admin) {
 
   card.querySelector('.gasto-cuotas').textContent = fin
     ? `${g.cuotas} de ${g.cuotas} cuotas`
-    : `${p} de ${g.cuotas} · quedan ${euro(restante)}`;
+    : empezado
+      ? `${p} de ${g.cuotas} · quedan ${euro(restante)}`
+      : `${g.cuotas} cuotas · ${euro(restante)} en total`;
+
+  /* Todavía no adquirido: no suma en la deuda */
+  if (!empezado) {
+    const nota = document.createElement('p');
+    nota.className = 'gasto-nota gasto-nota--info';
+    nota.textContent = `Empieza el ${fechaCorta(g.fechaInicio)} · aún no cuenta como deuda`;
+    card.querySelector('.gasto-meta').after(nota);
+  }
 
   /* Aviso de cuotas vencidas sin marcar */
   if (vencidas) {
@@ -355,9 +402,18 @@ function tarjetaGasto(g, admin) {
   const pagar = document.createElement('button');
   pagar.type = 'button';
   pagar.className = 'pagar-btn';
-  pagar.disabled = fin;
+  pagar.disabled = fin || !empezado;
+  // La etiqueta no cambia de ancho entre tarjetas: la fecha ya la da la
+  // nota de arriba, y repetirla aquí partía el botón en dos líneas.
   pagar.textContent = fin ? 'Listo' : 'Pagar cuota';
-  pagar.setAttribute('aria-label', fin ? `${g.nombre} está pagado` : `Marcar una cuota de ${g.nombre} como pagada`);
+  pagar.setAttribute(
+    'aria-label',
+    fin
+      ? `${g.nombre} está pagado`
+      : empezado
+        ? `Marcar una cuota de ${g.nombre} como pagada`
+        : `${g.nombre} empieza el ${fechaCorta(g.fechaInicio)}: todavía no se puede pagar`
+  );
   pagar.addEventListener('click', (e) => {
     e.stopPropagation();
     acciones.onPagar?.(g.id);
@@ -396,11 +452,11 @@ export function renderHistorial(g) {
   }
   wrap.hidden = false;
   cont.innerHTML = '';
-  const hoy = nowKey();
+  const atrasadas = new Set(vencidasDe(g));
 
   for (const k of mesesDelPlan(g)) {
     const pagado = estaPagado(g, k);
-    const vencido = !pagado && k <= hoy;
+    const vencido = atrasadas.has(k);
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'hist-chip';

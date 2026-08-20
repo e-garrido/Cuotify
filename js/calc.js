@@ -96,6 +96,43 @@ export function startKey(g) {
   return g.fechaInicio ? g.fechaInicio.slice(0, 7) : nowKey();
 }
 
+/* Fecha real de la cuota nº i, respetando el día del mes.
+   Si el día no existe en ese mes (31 de febrero) se ajusta al último. */
+export function fechaCuota(g, i) {
+  const [y, m, d] = (g.fechaInicio || hoyISO()).split('-').map(Number);
+  const f = new Date(y, m - 1 + i, 1);
+  const ultimoDia = new Date(f.getFullYear(), f.getMonth() + 1, 0).getDate();
+  f.setDate(Math.min(d, ultimoDia));
+  return f;
+}
+
+function aISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate()
+  ).padStart(2, '0')}`;
+}
+
+/* ¿Ya lo has adquirido? Un gasto cuya primera cuota es futura todavía no
+   es una deuda: lo has planificado, pero aún no lo has comprado.
+   Comparación por DÍA, no por mes: el 20 de agosto, una compra con primera
+   cuota el 30 de agosto sigue siendo futura. */
+export function haEmpezado(g) {
+  return (g.fechaInicio || hoyISO()) <= hoyISO();
+}
+
+export function adquiridos(gastos) {
+  return gastos.filter(haEmpezado);
+}
+
+/* '30 ago' */
+export function fechaCorta(iso) {
+  const [y, m, d] = String(iso || '').split('-').map(Number);
+  if (!y) return '';
+  return new Date(y, m - 1, d)
+    .toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+    .replace('.', '');
+}
+
 export function pagos(g) {
   return Array.isArray(g.pagos) ? g.pagos : [];
 }
@@ -168,12 +205,15 @@ export function pagadoTotalDe(g) {
   return num(g.cuotaMensual) * pagadas(g);
 }
 
+/* Solo lo adquirido: una compra programada para dentro de unos días
+   aún no se debe. Sí sigue contando en las cifras del mes, porque ese
+   cargo llegará a la cuenta igualmente. */
 export function deudaTotal(gastos) {
-  return gastos.reduce((s, g) => s + pendienteTotalDe(g), 0);
+  return adquiridos(gastos).reduce((s, g) => s + pendienteTotalDe(g), 0);
 }
 
 export function totalPagado(gastos) {
-  return gastos.reduce((s, g) => s + pagadoTotalDe(g), 0);
+  return adquiridos(gastos).reduce((s, g) => s + pagadoTotalDe(g), 0);
 }
 
 /* Coste financiado total (cuota x cuotas) */
@@ -189,23 +229,28 @@ export function intereses(g) {
 
 /* Mes en el que se termina de pagar todo. null si no hay deuda viva */
 export function libreEn(gastos) {
-  const vivos = gastos.filter((g) => !terminado(g));
+  const vivos = adquiridos(gastos).filter((g) => !terminado(g));
   if (!vivos.length) return null;
   return vivos.map(finKey).sort().pop();
 }
 
 /* ---------- Pagos vencidos y siguiente pago ---------- */
 
-/* Meses del plan ya vencidos (<= mes actual) que siguen sin marcar */
+/* Cuotas cuya fecha ya ha pasado y siguen sin marcar.
+   Por fecha exacta: si pagas los días 30, el 5 de septiembre todavía no
+   debes la cuota de septiembre. */
 export function vencidasDe(g) {
-  const hoy = nowKey();
-  return mesesDelPlan(g).filter((k) => k <= hoy && !estaPagado(g, k));
+  if (!haEmpezado(g)) return [];
+  const hoy = hoyISO();
+  return mesesDelPlan(g).filter(
+    (k, i) => aISO(fechaCuota(g, i)) <= hoy && !estaPagado(g, k)
+  );
 }
 
 /* Qué mes marca el botón "Pagar cuota":
    el mes en curso si toca y está pendiente; si no, el pendiente más antiguo. */
 export function proximoPago(g) {
-  if (terminado(g)) return null;
+  if (terminado(g) || !haEmpezado(g)) return null;
   const hoy = nowKey();
   if (esMesDelPlan(g, hoy) && !estaPagado(g, hoy)) return hoy;
   return mesesDelPlan(g).find((k) => !estaPagado(g, k)) || null;

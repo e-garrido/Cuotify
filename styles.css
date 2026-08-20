@@ -171,7 +171,14 @@ svg { display: block; }
   /* La tabbar mide tabbar-h + safe-area: si aquí solo restamos tabbar-h,
      el final del scroll queda debajo de la barra en iPhone. */
   inset: 0 0 calc(var(--tabbar-h) + var(--sab)) 0;
+  /* Ojo: declarar solo `overflow-y` no deja el eje X en `visible`; la
+     especificación lo convierte en `auto`, y aparecía una barra horizontal
+     en cuanto algo sobresalía unos píxeles. Hay que fijar los dos. */
+  overflow-x: hidden;
   overflow-y: auto;
+  /* `::-webkit-scrollbar` solo oculta la barra en Chrome y Safari; sin esto
+     Firefox la pinta y la app se ve distinta según el navegador. */
+  scrollbar-width: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding-top: calc(var(--sat) + var(--sp-2));
@@ -424,8 +431,6 @@ body.sin-scroll .screen { overflow: hidden; }
   overflow-x: auto;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  padding-inline: var(--sp-1);
-  margin-inline: calc(var(--sp-1) * -1);
 }
 .chart-bars::-webkit-scrollbar { display: none; }
 
@@ -507,12 +512,14 @@ body.sin-scroll .screen { overflow: hidden; }
   white-space: nowrap;
 }
 
-/* Etiqueta al pasar el ratón, al enfocar con teclado o al tocar */
+/* Etiqueta al pasar el ratón, al enfocar con teclado o al tocar.
+   Vive en .chart-plot y no dentro de .chart-bars: ese contenedor tiene
+   scroll horizontal y, por la misma regla de arriba, también recorta en
+   vertical, así que ahí el tooltip salía cortado. */
 .bar-tip {
   position: absolute;
-  bottom: calc(100% - var(--chart-val));
-  left: 50%;
-  transform: translate(-50%, -6px);
+  top: -2px;
+  transform: translateX(-50%);
   background: var(--on-surface);
   color: var(--bg);
   font-size: var(--fs-xs);
@@ -520,14 +527,10 @@ body.sin-scroll .screen { overflow: hidden; }
   padding: var(--sp-1) var(--sp-2);
   border-radius: var(--r-sm);
   white-space: nowrap;
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s;
-  z-index: 3;
+  box-shadow: var(--shadow);
+  z-index: 5;
 }
-.bar-slot:hover .bar-tip,
-.bar-slot:focus-visible .bar-tip,
-.bar-slot.is-open .bar-tip { opacity: 1; }
 
 /* ===================== Tarjetas de gasto ===================== */
 .gastos-list { display: flex; flex-direction: column; gap: var(--sp-3); }
@@ -577,6 +580,8 @@ body.sin-scroll .screen { overflow: hidden; }
   font-variant-numeric: tabular-nums;
 }
 .gasto-status.done { background: var(--success-soft); color: var(--success); }
+/* Programado: comprado aún no, así que ni cuenta como deuda ni se puede pagar */
+.gasto-status.prog { background: var(--surface-2); color: var(--on-surface-2); }
 
 .gasto-meta {
   display: flex;
@@ -595,6 +600,9 @@ body.sin-scroll .screen { overflow: hidden; }
   font-weight: 600;
   margin-top: var(--sp-2);
 }
+.gasto-nota--info { color: var(--accent-text); }
+.gasto-card.is-programado { border-style: dashed; }
+.gasto-card.is-programado .progress-fill { background: var(--on-surface-2); }
 .gasto-aviso {
   display: block;
   width: 100%;
@@ -652,6 +660,7 @@ body.sin-scroll .screen { overflow: hidden; }
 .mini-btn.danger { background: var(--danger-soft); color: var(--danger); }
 
 .pagar-btn {
+  white-space: nowrap;
   background: var(--accent);
   color: var(--on-accent);
   padding: var(--sp-2) var(--sp-3);
