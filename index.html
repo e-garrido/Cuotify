@@ -3,177 +3,342 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Cuotas</title>
+  <title>Cuotify — tus compras a plazos</title>
+  <meta name="description" content="Controla tus compras a plazos: cuánto pagas cada mes, cuántas cuotas te quedan y qué saldo te sobra del presupuesto.">
 
-  <!-- PWA / iOS -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#eef2f7">
+  <meta name="theme-color" content="#f2f3f7">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Cuotas">
+  <meta name="apple-mobile-web-app-title" content="Cuotify">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="icons/icon-192.png">
+
+  <!-- Aplica el tema guardado antes del primer pintado, para que no parpadee -->
+  <script>
+    try {
+      var d = JSON.parse(localStorage.getItem('cuotify.data.v2') || 'null');
+      if (d && (d.tema === 'dark' || d.tema === 'light')) {
+        document.documentElement.setAttribute('data-theme', d.tema);
+      }
+    } catch (e) {}
+  </script>
 
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Pantalla: Resumen -->
-  <section class="screen is-active" data-screen="resumen">
-    <header class="app-header">
-      <div class="hello">
-        <img src="icons/logo.png" alt="Logo" class="logo-avatar">
+
+<!-- ==================== Resumen ==================== -->
+<section class="screen is-active" data-screen="resumen">
+  <header class="app-header">
+    <div class="hello">
+      <img src="icons/logo.png" alt="" class="logo-avatar" width="42" height="42">
+      <div>
+        <p class="hello-top">Hola 👋</p>
+        <h1 class="hello-title">Tus cuotas</h1>
+      </div>
+    </div>
+    <button type="button" class="add-chip" data-go="add" aria-label="Añadir gasto">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
+    </button>
+  </header>
+
+  <main class="content">
+    <!-- Saldo -->
+    <section class="saldo-card" id="saldoCard" aria-labelledby="saldoLabel">
+      <div class="saldo-top">
         <div>
-          <div class="hello-top">Hola 👋</div>
-          <h1 class="hello-title">Tus cuotas</h1>
+          <p class="saldo-label" id="saldoLabel">Saldo disponible este mes</p>
+          <p class="saldo-value" id="saldoValue" aria-live="polite">—</p>
+          <p class="saldo-sub" id="saldoSub"></p>
+        </div>
+        <div class="ring" id="saldoRing" role="img" hidden>
+          <svg viewBox="0 0 52 52" aria-hidden="true">
+            <circle class="ring-track" cx="26" cy="26" r="22"></circle>
+            <circle class="ring-arc" id="saldoRingArc" cx="26" cy="26" r="22"></circle>
+          </svg>
+          <span class="ring-text" id="saldoRingText"></span>
         </div>
       </div>
-      <button id="btnAddHeader" class="add-chip" aria-label="Añadir gasto">
-        <span class="plus">+</span>
-      </button>
-    </header>
 
-    <main class="content">
-      <!-- Saldo disponible -->
-      <section class="card saldo-card">
-        <div class="saldo-label">Saldo disponible este mes</div>
-        <div class="saldo-value" id="saldoValue">--.- €</div>
-        <div class="saldo-sub" id="saldoSub">...</div>
-
-        <div class="saldo-row">
-          <div class="saldo-item">
-            <div class="saldo-item-label">Presupuesto</div>
-            <div class="saldo-item-val" id="presupuestoVal">--</div>
-          </div>
-          <div class="saldo-item">
-            <div class="saldo-item-label">Cuotas del mes</div>
-            <div class="saldo-item-val" id="cuotasMesVal">--</div>
-          </div>
+      <div class="saldo-row">
+        <div class="saldo-item">
+          <p class="saldo-item-label">Presupuesto</p>
+          <p class="saldo-item-val" id="presupuestoVal">—</p>
         </div>
-
-        <button id="btnEditPresupuesto" class="ghost-btn">Ajustar presupuesto</button>
-      </section>
-
-      <!-- Próximos cargos -->
-      <section class="block">
-        <h2 class="block-title">Próximos cargos</h2>
-        <div class="next-month-scroll" id="nextMonths">
-          <!-- rellenado por JS -->
+        <div class="saldo-item">
+          <p class="saldo-item-label">Cuotas del mes</p>
+          <p class="saldo-item-val" id="cuotasMesVal">—</p>
         </div>
-      </section>
-
-      <!-- Progreso de gastos -->
-      <section class="block">
-        <h2 class="block-title">Mis compras a plazos</h2>
-        <div id="gastosList" class="gastos-list">
-          <!-- rellenado por JS -->
-        </div>
-      </section>
-    </main>
-  </section>
-
-  <!-- Pantalla: Gastos (lista completa) -->
-  <section class="screen" data-screen="gastos">
-    <header class="app-header">
-      <div class="hello">
-        <div class="hello-top">Todo</div>
-        <h1 class="home-title">Gastos</h1>
       </div>
-      <button class="add-chip" data-go="add" aria-label="Añadir gasto">
-        <span class="plus">+</span>
-      </button>
-    </header>
-    <main class="content">
-      <div class="gastos-list" id="gastosListFull"></div>
-    </main>
-  </section>
 
-  <!-- Pantalla: Añadir / Editar -->
-  <section class="screen" data-screen="add">
-    <header class="app-header form-header">
-      <button class="back-btn" data-go="resumen" id="btnBack">‹</button>
-      <h1 class="form-title" id="formTitle">Nuevo gasto</h1>
-      <span class="header-spacer"></span>
-    </header>
-    <main class="content form">
-      <input type="hidden" id="fId">
+      <!-- Esto sí baja cada vez que marcas una cuota -->
+      <div class="pago-mes" id="pagoMes" hidden>
+        <div class="pago-mes-head">
+          <span id="pagoMesTexto"></span>
+          <span id="pagoMesSub"></span>
+        </div>
+        <div class="pago-mes-bar" id="pagoMesBar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div class="pago-mes-fill" id="pagoMesFill"></div>
+        </div>
+      </div>
+
+      <button type="button" id="btnEditPresupuesto" class="ghost-btn">Ajustar presupuesto</button>
+    </section>
+
+    <!-- Deuda total -->
+    <section class="block deuda-card" id="deudaCard" hidden aria-labelledby="deudaLabel">
+      <p class="deuda-label" id="deudaLabel">Deuda pendiente</p>
+      <p class="deuda-value" id="deudaValue">—</p>
+      <div class="deuda-bar" id="deudaBar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="deuda-fill" id="deudaFill"></div>
+      </div>
+      <p class="deuda-pct" id="deudaPct"></p>
+      <div class="deuda-row">
+        <div>
+          <p class="deuda-item-label">Ya pagado</p>
+          <p class="deuda-item-val" id="deudaPagado">—</p>
+        </div>
+        <div>
+          <p class="deuda-item-label" id="deudaFinLabel">Libre de deudas en</p>
+          <p class="deuda-item-val" id="deudaFin">—</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Próximos cargos -->
+    <section class="block">
+      <h2 class="block-title">Próximos cargos</h2>
+      <div class="chart">
+        <div class="chart-plot">
+          <div class="chart-ref" id="chartRef" hidden>
+            <span class="chart-ref-label" id="chartRefLabel"></span>
+          </div>
+          <div class="chart-bars" id="nextMonths"></div>
+        </div>
+      </div>
+      <p class="lista-vacia" id="nextMonthsEmpty" hidden>
+        Cuando añadas un gasto verás aquí lo que te toca pagar cada mes.
+      </p>
+    </section>
+
+    <!-- Lista -->
+    <section class="block">
+      <h2 class="block-title">Mis compras a plazos</h2>
+      <div id="gastosList" class="gastos-list"></div>
+    </section>
+  </main>
+</section>
+
+<!-- ==================== Gastos ==================== -->
+<section class="screen" data-screen="gastos">
+  <header class="app-header">
+    <div class="hello">
+      <div>
+        <p class="hello-top">Todo</p>
+        <h1 class="hello-title">Gastos</h1>
+      </div>
+    </div>
+    <button type="button" class="add-chip" data-go="add" aria-label="Añadir gasto">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
+    </button>
+  </header>
+
+  <main class="content">
+    <label class="buscador">
+      <span class="visually-hidden">Buscar gasto por nombre</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="buscador" type="search" placeholder="Buscar…" autocomplete="off">
+    </label>
+
+    <div class="segmented" id="filtros" role="group" aria-label="Filtrar gastos">
+      <button type="button" class="seg-btn is-active" data-filtro="activos" aria-pressed="true">Activos</button>
+      <button type="button" class="seg-btn" data-filtro="finalizados" aria-pressed="false">Finalizados</button>
+      <button type="button" class="seg-btn" data-filtro="todos" aria-pressed="false">Todos</button>
+    </div>
+
+    <div class="gastos-list" id="gastosListFull"></div>
+  </main>
+</section>
+
+<!-- ==================== Añadir / Editar ==================== -->
+<section class="screen" data-screen="add">
+  <header class="app-header form-header">
+    <button type="button" class="back-btn" data-go="resumen" aria-label="Volver">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <h1 class="form-title" id="formTitle">Nuevo gasto</h1>
+  </header>
+
+  <main class="content">
+    <form class="form" id="formulario" novalidate>
+      <input type="hidden" id="fIcono" value="🛒">
 
       <label class="field">
         <span class="field-label">Nombre</span>
-        <input id="fNombre" type="text" placeholder="Ej. PlayStation 5">
+        <input id="fNombre" type="text" placeholder="Ej. PlayStation 5" autocomplete="off" enterkeyhint="next">
       </label>
 
-      <label class="field">
-        <span class="field-label">Precio total (€)</span>
-        <input id="fPrecio" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00">
-      </label>
+      <fieldset class="field">
+        <legend class="field-label">Icono</legend>
+        <div class="icono-picker" id="iconoPicker"></div>
+      </fieldset>
+
+      <div class="field-grid">
+        <label class="field">
+          <span class="field-label">Precio al contado</span>
+          <input id="fPrecio" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
+        </label>
+        <label class="field">
+          <span class="field-label">Cuotas totales</span>
+          <input id="fCuotasTotales" type="text" inputmode="numeric" placeholder="12" autocomplete="off">
+        </label>
+      </div>
 
       <label class="field">
-        <span class="field-label">Cuota mensual (€)</span>
-        <input id="fCuota" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00">
+        <span class="field-label">Cuota mensual</span>
+        <input id="fCuota" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
       </label>
 
-      <label class="field">
-        <span class="field-label">Cuotas totales</span>
-        <input id="fCuotasTotales" type="number" inputmode="numeric" min="1" step="1" placeholder="12">
-      </label>
+      <p class="nota" id="notaIntereses" hidden></p>
 
       <label class="field">
-        <span class="field-label">Primera cuota (fecha)</span>
+        <span class="field-label">Primera cuota</span>
         <input id="fFecha" type="date">
       </label>
 
-      <label class="field">
-        <span class="field-label">Cuotas ya pagadas</span>
-        <input id="fPagadas" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
-      </label>
-
-      <div class="field-actions">
-        <button id="fDelete" class="delete-btn is-hidden">Eliminar gasto</button>
+      <div class="field" id="historialWrap" hidden>
+        <span class="field-label">Historial de cuotas</span>
+        <p class="field-ayuda">Toca un mes para marcarlo como pagado o desmarcarlo.</p>
+        <div class="historial" id="historial"></div>
       </div>
 
-      <button id="fSave" class="primary-btn">Guardar</button>
-    </main>
-  </section>
+      <button type="submit" id="fSave" class="primary-btn">Guardar</button>
+      <button type="button" id="fDelete" class="delete-btn" hidden>Eliminar gasto</button>
+    </form>
+  </main>
+</section>
 
-  <!-- Barra de pestañas -->
-  <nav class="tabbar">
-    <button class="tab is-active" data-tab="resumen">
-      <svg viewBox="0 0 24 24" class="tab-icon"><path d="M3 13h2v8H3zM7 9h2v12H7zM11 4h2v17h-2zM15 8h2v13h-2zM19 11h2v10h-2z" fill="currentColor"/></svg>
-      <span class="tab-label">Resumen</span>
-    </button>
-    <button class="tab" data-tab="gastos">
-      <svg viewBox="0 0 24 24" class="tab-icon"><path d="M3 3h18v18H3zM5 5v14h14V5zM7 9l2 2 3-3 4 4v2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-      <span class="tab-label">Gastos</span>
-    </button>
-    <button class="tab tab-add" data-tab="add">
-      <svg viewBox="0 0 24 24" class="tab-icon"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-      <span class="tab-label">Añadir</span>
-    </button>
-  </nav>
+<!-- ==================== Ajustes ==================== -->
+<section class="screen" data-screen="ajustes">
+  <header class="app-header">
+    <div class="hello">
+      <div>
+        <p class="hello-top">Preferencias</p>
+        <h1 class="hello-title">Ajustes</h1>
+      </div>
+    </div>
+  </header>
 
-  <!-- Hoja de ajuste de presupuesto -->
-  <div class="sheet-backdrop" id="sheetBackdrop" hidden>
-    <div class="sheet">
-      <div class="sheet-grabber"></div>
-      <h3 class="sheet-title">Presupuesto mensual</h3>
+  <main class="content">
+    <section class="block">
+      <h2 class="block-title">Apariencia</h2>
+      <div class="segmented" id="temaSeg" role="group" aria-label="Tema de la aplicación">
+        <button type="button" class="seg-btn" data-tema="auto" aria-pressed="false">Automático</button>
+        <button type="button" class="seg-btn" data-tema="light" aria-pressed="false">Claro</button>
+        <button type="button" class="seg-btn" data-tema="dark" aria-pressed="false">Oscuro</button>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Presupuesto</h2>
+      <button type="button" class="fila" id="btnAjustesPresupuesto">
+        <span class="fila-texto">
+          <span class="fila-titulo">Presupuesto mensual</span>
+          <span class="fila-sub" id="ajustesPresupuesto">Sin definir</span>
+        </span>
+        <span class="fila-chevron" aria-hidden="true">›</span>
+      </button>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Copia de seguridad</h2>
+      <p class="aviso">
+        Tus datos viven solo en este dispositivo. Si borras los datos del navegador
+        o reinstalas la app, se pierden. Exporta una copia de vez en cuando.
+      </p>
+      <button type="button" class="fila" id="btnExportar">
+        <span class="fila-texto">
+          <span class="fila-titulo">Exportar copia</span>
+          <span class="fila-sub" id="ajustesResumen"></span>
+        </span>
+        <span class="fila-chevron" aria-hidden="true">↓</span>
+      </button>
+      <button type="button" class="fila" id="btnImportar">
+        <span class="fila-texto">
+          <span class="fila-titulo">Importar copia</span>
+          <span class="fila-sub">Restaura o fusiona un archivo exportado</span>
+        </span>
+        <span class="fila-chevron" aria-hidden="true">↑</span>
+      </button>
+      <input type="file" id="fileImportar" accept="application/json,.json" class="visually-hidden">
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Zona peligrosa</h2>
+      <button type="button" class="fila fila--peligro" id="btnBorrarTodo">
+        <span class="fila-texto">
+          <span class="fila-titulo">Borrar todos los datos</span>
+          <span class="fila-sub">No se puede deshacer una vez cierres la app</span>
+        </span>
+      </button>
+    </section>
+  </main>
+</section>
+
+<!-- ==================== Barra de pestañas ==================== -->
+<nav class="tabbar" aria-label="Secciones">
+  <button type="button" class="tab is-active" data-tab="resumen" aria-current="page">
+    <svg viewBox="0 0 24 24" class="tab-icon" aria-hidden="true"><path d="M3 13h2v8H3zM7 9h2v12H7zM11 4h2v17h-2zM15 8h2v13h-2zM19 11h2v10h-2z" fill="currentColor"/></svg>
+    <span class="tab-label">Resumen</span>
+  </button>
+  <button type="button" class="tab" data-tab="gastos" aria-current="false">
+    <svg viewBox="0 0 24 24" class="tab-icon" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span class="tab-label">Gastos</span>
+  </button>
+  <button type="button" class="tab" data-tab="add" aria-current="false">
+    <svg viewBox="0 0 24 24" class="tab-icon" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
+    <span class="tab-label">Añadir</span>
+  </button>
+  <button type="button" class="tab" data-tab="ajustes" aria-current="false">
+    <svg viewBox="0 0 24 24" class="tab-icon" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span class="tab-label">Ajustes</span>
+  </button>
+</nav>
+
+<!-- ==================== Hojas ==================== -->
+<div class="sheet-backdrop" id="sheetBackdrop" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetPresupuestoTitle">
+    <div class="sheet-grabber" aria-hidden="true"></div>
+    <h2 class="sheet-title" id="sheetPresupuestoTitle">Presupuesto mensual</h2>
+    <form id="formPresupuesto" class="form" novalidate>
       <label class="field">
         <span class="field-label">¿Cuánto recibes o presupuestas al mes?</span>
-        <input id="fPresupuesto" type="number" inputmode="decimal" min="0" step="0.01">
+        <input id="fPresupuesto" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
       </label>
-      <button id="btnSavePresupuesto" class="primary-btn">Guardar</button>
-    </div>
+      <button type="submit" class="primary-btn">Guardar</button>
+    </form>
   </div>
+</div>
 
-  <!-- Hoja de confirmación -->
-  <div class="sheet-backdrop" id="confirmBackdrop" hidden>
-    <div class="sheet">
-      <div class="sheet-grabber"></div>
-      <h3 class="sheet-title" id="confirmTitle">¿Eliminar gasto?</h3>
-      <p class="sheet-msg" id="confirmMsg">Esta acción no se puede deshacer.</p>
-      <button id="btnConfirmCancel" class="secondary-btn">Cancelar</button>
-      <button id="btnConfirmOk" class="primary-btn danger">Eliminar</button>
-    </div>
+<div class="sheet-backdrop" id="confirmBackdrop" hidden>
+  <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMsg">
+    <div class="sheet-grabber" aria-hidden="true"></div>
+    <h2 class="sheet-title" id="confirmTitle">¿Eliminar gasto?</h2>
+    <p class="sheet-msg" id="confirmMsg">Esta acción no se puede deshacer.</p>
+    <button type="button" id="btnConfirmCancel" class="secondary-btn">Cancelar</button>
+    <button type="button" id="btnConfirmOk" class="primary-btn danger">Eliminar</button>
   </div>
+</div>
 
-  <script src="app.js"></script>
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<noscript>
+  <p class="noscript">Cuotify necesita JavaScript para calcular tus cuotas.</p>
+</noscript>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>
