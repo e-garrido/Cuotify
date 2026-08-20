@@ -1,6 +1,6 @@
 'use strict';
 
-import { state } from './state.js';
+import { state, hueDeIcono, iconoValido, nombreDeIcono } from './state.js';
 import {
   euro, euroCorto, keyLabel, keyLabelLargo, monthInfo, nowKey,
   cargosMes, pendienteMes, activosEn,
@@ -8,7 +8,7 @@ import {
   deudaTotal, totalPagado, pendienteTotalDe, libreEn, vencidasDe, intereses,
   haEmpezado, adquiridos, fechaCorta,
 } from './calc.js';
-import { $, hueDe, animarCifra, sinMovimiento } from './ui.js';
+import { $, animarCifra, sinMovimiento } from './ui.js';
 
 const MESES_VISTA = 6;
 
@@ -264,7 +264,7 @@ function textoVacio(busqueda, filtro) {
   if (busqueda) return `Ningún gasto coincide con «${busqueda}».`;
   if (filtro === 'finalizados') return 'Todavía no has terminado de pagar nada.';
   if (filtro === 'activos' && state.gastos.length)
-    return 'No te queda ningún pago pendiente. 🎉';
+    return 'No te queda ningún pago pendiente.';
   return 'Aún no hay gastos. Toca + para añadir tu primera compra a plazos.';
 }
 
@@ -303,14 +303,14 @@ function tarjetaGasto(g, admin) {
 
   const card = document.createElement('article');
   card.className = 'gasto-card';
-  card.style.setProperty('--hue', hueDe(g.nombre));
+  card.style.setProperty('--hue', hueDeIcono(g.icono));
   if (fin) card.classList.add('is-fin');
   if (vencidas) card.classList.add('is-vencido');
   if (!empezado) card.classList.add('is-programado');
 
   card.innerHTML = `
     <div class="gasto-head">
-      <span class="gasto-icono" aria-hidden="true"></span>
+      <span class="gasto-icono"><svg class="ic" aria-hidden="true"><use/></svg></span>
       <span class="gasto-name"></span>
       <span class="gasto-status">${fin ? 'Pagado' : empezado ? pct + '%' : 'Programado'}</span>
     </div>
@@ -327,7 +327,10 @@ function tarjetaGasto(g, admin) {
     </div>
   `;
 
-  card.querySelector('.gasto-icono').textContent = g.icono || '🛒';
+  const idIcono = iconoValido(g.icono);
+  card.querySelector('.gasto-icono use').setAttribute('href', `#ic-${idIcono}`);
+  card.querySelector('.gasto-icono').setAttribute('aria-label', nombreDeIcono(idIcono));
+  card.querySelector('.gasto-icono').setAttribute('role', 'img');
   card.querySelector('.gasto-name').textContent = g.nombre;
   card.querySelector('.gasto-status').classList.toggle('done', fin);
   card.querySelector('.gasto-status').classList.toggle('prog', !fin && !empezado);

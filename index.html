@@ -30,13 +30,95 @@
 </head>
 <body>
 
+<!-- Iconos: definidos una vez y referenciados con <use> -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="ic-compra" viewBox="0 0 24 24">
+    <path d="M6.2 8.6h11.6l.85 10.9a1.7 1.7 0 0 1-1.7 1.8H7.05a1.7 1.7 0 0 1-1.7-1.8L6.2 8.6Z"/>
+    <path d="M9 10.6V7.1a3 3 0 0 1 6 0v3.5"/>
+  </symbol>
+  <symbol id="ic-movil" viewBox="0 0 24 24">
+    <rect x="7" y="2.6" width="10" height="18.8" rx="2.6"/>
+    <path d="M10.6 5.5h2.8M10.9 18.6h2.2"/>
+  </symbol>
+  <symbol id="ic-portatil" viewBox="0 0 24 24">
+    <rect x="4.4" y="5" width="15.2" height="10.2" rx="1.8"/>
+    <path d="M2.4 18.6h19.2"/>
+  </symbol>
+  <symbol id="ic-juegos" viewBox="0 0 24 24">
+    <path d="M8.7 8.6h6.6a5 5 0 0 1 4.9 4.1l.45 2.5a2.75 2.75 0 0 1-5.1 1.9l-.85-1.4H9.3l-.85 1.4a2.75 2.75 0 0 1-5.1-1.9l.45-2.5a5 5 0 0 1 4.9-4.1Z"/>
+    <path d="M7.5 11.7v2.5M6.25 12.95h2.5"/>
+    <circle cx="15.3" cy="12.4" r=".95" fill="currentColor" stroke="none"/>
+    <circle cx="17.2" cy="14.3" r=".95" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-coche" viewBox="0 0 24 24">
+    <path d="M4.3 16.3v-3l1.95-4.35A1.85 1.85 0 0 1 7.95 7.8h8.1a1.85 1.85 0 0 1 1.7 1.15L19.7 13.3v3"/>
+    <path d="M4.3 13.3h15.4"/>
+    <circle cx="8" cy="16.3" r="1.75"/>
+    <circle cx="16" cy="16.3" r="1.75"/>
+    <path d="M4.3 16.3h1.95M17.75 16.3h1.95"/>
+  </symbol>
+  <symbol id="ic-hogar" viewBox="0 0 24 24">
+    <path d="M3.6 10.4 12 3.8l8.4 6.6"/>
+    <path d="M5.75 9.1v9.7a1.7 1.7 0 0 0 1.7 1.7h9.1a1.7 1.7 0 0 0 1.7-1.7V9.1"/>
+    <path d="M9.8 20.5v-5.3h4.4v5.3"/>
+  </symbol>
+  <symbol id="ic-mueble" viewBox="0 0 24 24">
+    <path d="M6.6 12.6V8.9A2.2 2.2 0 0 1 8.8 6.7h6.4a2.2 2.2 0 0 1 2.2 2.2v3.7"/>
+    <path d="M3.3 17.5v-4a2.1 2.1 0 0 1 4.2 0v1.4h9v-1.4a2.1 2.1 0 0 1 4.2 0v4"/>
+    <path d="M3.3 17.5h17.4"/>
+    <path d="M5.6 17.5v1.9M18.4 17.5v1.9"/>
+  </symbol>
+  <symbol id="ic-electro" viewBox="0 0 24 24">
+    <rect x="6.2" y="2.6" width="11.6" height="18.8" rx="2.4"/>
+    <path d="M6.2 9.4h11.6"/>
+    <path d="M9.2 5.5v2.1M9.2 12v3.2"/>
+  </symbol>
+  <symbol id="ic-ropa" viewBox="0 0 24 24">
+    <path d="M9 3.7 4.4 6.3l1.9 3.6 2.1-1.1v10.9a1 1 0 0 0 1 1h5.2a1 1 0 0 0 1-1V8.8l2.1 1.1 1.9-3.6L15 3.7a3 3 0 0 1-6 0Z"/>
+  </symbol>
+  <symbol id="ic-viaje" viewBox="0 0 24 24">
+    <path d="M21.6 16.2v-1.9l-8.3-4.9V3.9a1.5 1.5 0 0 0-3 0v5.5l-8.3 4.9v1.9l8.3-2.5v4.1l-2.4 1.6v1.5l3.9-1 3.9 1v-1.5l-2.4-1.6v-4.1l8.3 2.5Z"/>
+  </symbol>
+  <symbol id="ic-audio" viewBox="0 0 24 24">
+    <path d="M4.4 14.5v-2.3a7.6 7.6 0 0 1 15.2 0v2.3"/>
+    <rect x="2.4" y="13.5" width="4.2" height="6.5" rx="2.1"/>
+    <rect x="17.4" y="13.5" width="4.2" height="6.5" rx="2.1"/>
+  </symbol>
+  <symbol id="ic-tv" viewBox="0 0 24 24">
+    <rect x="2.6" y="4.2" width="18.8" height="12.6" rx="2.2"/>
+    <path d="M8.4 20.4h7.2M12 16.8v3.6"/>
+  </symbol>
+  <symbol id="ic-bici" viewBox="0 0 24 24">
+    <circle cx="5.6" cy="16.4" r="3.5"/>
+    <circle cx="18.4" cy="16.4" r="3.5"/>
+    <path d="m5.6 16.4 4.2-7.2h5.2"/>
+    <path d="M9.8 9.2H7.4"/>
+    <path d="M12.4 16.4 15 9.2l3.4 7.2"/>
+  </symbol>
+  <symbol id="ic-salud" viewBox="0 0 24 24">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/>
+  </symbol>
+  <symbol id="ic-mascota" viewBox="0 0 24 24">
+    <ellipse cx="6.6" cy="10.2" rx="1.9" ry="2.5"/>
+    <ellipse cx="10.8" cy="7.7" rx="1.9" ry="2.7"/>
+    <ellipse cx="15.4" cy="8.3" rx="1.9" ry="2.6"/>
+    <ellipse cx="19" cy="11.8" rx="1.8" ry="2.2"/>
+    <path d="M12 13.4c-3 0-5.4 2.2-5.4 4.7 0 1.9 1.5 3.2 3.4 3.2.9 0 1.4-.3 2-.3s1.1.3 2 .3c1.9 0 3.4-1.3 3.4-3.2 0-2.5-2.4-4.7-5.4-4.7Z"/>
+  </symbol>
+  <symbol id="ic-estudios" viewBox="0 0 24 24">
+    <path d="M2.6 8.8 12 4.4l9.4 4.4L12 13.2 2.6 8.8Z"/>
+    <path d="M6.8 10.9v4.8c0 1.6 2.3 2.9 5.2 2.9s5.2-1.3 5.2-2.9v-4.8"/>
+    <path d="M21.4 8.8v5.5"/>
+  </symbol>
+</svg>
+
+
 <!-- ==================== Resumen ==================== -->
 <section class="screen is-active" data-screen="resumen">
   <header class="app-header">
     <div class="hello">
       <img src="icons/logo.png" alt="" class="logo-avatar" width="42" height="42">
       <div>
-        <p class="hello-top">Hola 👋</p>
         <h1 class="hello-title">Tus cuotas</h1>
       </div>
     </div>
@@ -175,7 +257,7 @@
 
   <main class="content">
     <form class="form" id="formulario" novalidate>
-      <input type="hidden" id="fIcono" value="🛒">
+      <input type="hidden" id="fIcono" value="compra">
 
       <label class="field">
         <span class="field-label">Nombre</span>

@@ -40,14 +40,6 @@ export function ponImporte(input, v) {
   input.value = v ? String(v).replace('.', ',') : '';
 }
 
-/* Tono estable por nombre, para dar identidad a cada gasto */
-export function hueDe(texto) {
-  let h = 0;
-  const s = String(texto || '');
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
-  return h;
-}
-
 /* ---------- Toasts ---------- */
 let toastActual = null;
 

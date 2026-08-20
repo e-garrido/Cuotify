@@ -1,6 +1,9 @@
 'use strict';
 
-import { state, load, save, uid, sugerirIcono, ICONOS, serializar, nombreCopia, importar } from './js/state.js';
+import {
+  state, load, save, uid, sugerirIcono, ICONOS, iconoValido, ICONO_DEFECTO,
+  serializar, nombreCopia, importar,
+} from './js/state.js';
 import { euro, hoyISO, nowKey, proximoPago, estaPagado, vencidasDe, terminado, pagadas } from './js/calc.js';
 import {
   $, $$, toast, abrirHoja, cerrarHoja, conectarHoja, confirmar, aplicarTema,
@@ -83,7 +86,7 @@ function abrirNuevo() {
   $('#fNombre').value = '';
   ['fPrecio', 'fCuota', 'fCuotasTotales'].forEach((id) => ($(`#${id}`).value = ''));
   $('#fFecha').value = hoyISO();
-  seleccionarIcono('🛒');
+  seleccionarIcono(ICONO_DEFECTO);
   $('#fDelete').hidden = true;
   $('#historialWrap').hidden = true;
   actualizarNotaIntereses();
@@ -118,21 +121,24 @@ function pintarIconos() {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'icono-opt';
-    b.textContent = ic;
-    b.dataset.icono = ic;
-    b.setAttribute('aria-label', `Icono ${ic}`);
+    b.dataset.icono = ic.id;
+    b.style.setProperty('--hue', ic.hue);
+    b.title = ic.nombre;
+    b.setAttribute('aria-label', ic.nombre);
+    b.innerHTML = `<svg class="ic" aria-hidden="true"><use href="#ic-${ic.id}"/></svg>`;
     b.addEventListener('click', () => {
       iconoManual = true;
-      seleccionarIcono(ic);
+      seleccionarIcono(ic.id);
     });
     cont.append(b);
   }
 }
 
 function seleccionarIcono(ic) {
-  $('#fIcono').value = ic;
+  const id = iconoValido(ic);
+  $('#fIcono').value = id;
   $$('#iconoPicker .icono-opt').forEach((b) => {
-    const on = b.dataset.icono === ic;
+    const on = b.dataset.icono === id;
     b.classList.toggle('is-active', on);
     b.setAttribute('aria-pressed', String(on));
   });
@@ -263,7 +269,7 @@ function onPagar(id) {
   const restantes = g.cuotas - pagadas(g);
   toast(
     restantes === 0
-      ? `¡${g.nombre} pagado del todo! 🎉`
+      ? `${g.nombre}: última cuota pagada`
       : `Cuota marcada · quedan ${restantes}`,
     {
       accion: 'Deshacer',

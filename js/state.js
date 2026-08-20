@@ -20,34 +20,76 @@ export const state = {
   tema: 'auto', // 'auto' | 'light' | 'dark'
 };
 
-/* Iconos sugeridos por palabra clave del nombre */
+/* ---------- Iconos ----------
+   Cada icono es un id que apunta a un <symbol> del sprite de index.html,
+   y lleva su propio tono: así todas las compras de una misma categoría
+   comparten color y la lista se lee de un vistazo. */
 export const ICONOS = [
-  '🛒', '📱', '💻', '🎮', '🚗', '🏠', '🛋️', '🧊',
-  '👕', '✈️', '🎧', '📺', '🚲', '💊', '🐶', '🎓',
+  { id: 'compra',   hue: 28,  nombre: 'Compra' },
+  { id: 'movil',    hue: 210, nombre: 'Móvil' },
+  { id: 'portatil', hue: 250, nombre: 'Portátil' },
+  { id: 'juegos',   hue: 280, nombre: 'Videojuegos' },
+  { id: 'coche',    hue: 8,   nombre: 'Coche' },
+  { id: 'hogar',    hue: 150, nombre: 'Hogar' },
+  { id: 'mueble',   hue: 40,  nombre: 'Muebles' },
+  { id: 'electro',  hue: 190, nombre: 'Electrodomésticos' },
+  { id: 'ropa',     hue: 330, nombre: 'Ropa' },
+  { id: 'viaje',    hue: 200, nombre: 'Viajes' },
+  { id: 'audio',    hue: 265, nombre: 'Audio' },
+  { id: 'tv',       hue: 220, nombre: 'Televisión' },
+  { id: 'bici',     hue: 100, nombre: 'Bicicleta' },
+  { id: 'salud',    hue: 350, nombre: 'Salud' },
+  { id: 'mascota',  hue: 20,  nombre: 'Mascotas' },
+  { id: 'estudios', hue: 310, nombre: 'Estudios' },
 ];
 
+export const ICONO_DEFECTO = 'compra';
+
+const POR_ID = new Map(ICONOS.map((i) => [i.id, i]));
+
+export function iconoValido(id) {
+  return POR_ID.has(id) ? id : ICONO_DEFECTO;
+}
+
+export function hueDeIcono(id) {
+  return (POR_ID.get(id) || POR_ID.get(ICONO_DEFECTO)).hue;
+}
+
+export function nombreDeIcono(id) {
+  return (POR_ID.get(id) || POR_ID.get(ICONO_DEFECTO)).nombre;
+}
+
+/* Las versiones anteriores guardaban un emoji: lo traducimos al abrir */
+const EMOJI_A_ID = {
+  '🛒': 'compra', '📱': 'movil', '💻': 'portatil', '🎮': 'juegos',
+  '🚗': 'coche', '🏠': 'hogar', '🛋️': 'mueble', '🛋': 'mueble',
+  '🧊': 'electro', '👕': 'ropa', '✈️': 'viaje', '✈': 'viaje',
+  '🎧': 'audio', '📺': 'tv', '🚲': 'bici', '💊': 'salud',
+  '🐶': 'mascota', '🎓': 'estudios',
+};
+
 const PISTAS = [
-  [/ipad|iphone|movil|móvil|samsung|xiaomi|telefon|teléfon/i, '📱'],
-  [/portatil|portátil|mac|pc|ordenador|laptop/i, '💻'],
-  [/play ?station|ps5|ps4|xbox|switch|nintendo|consola|juego/i, '🎮'],
-  [/coche|moto|car |seat|renault|taller|neumatic|neumátic/i, '🚗'],
-  [/casa|hipoteca|reforma|obra|piso|alquiler/i, '🏠'],
-  [/sofa|sofá|mesa|silla|colchon|colchón|mueble|armario/i, '🛋️'],
-  [/nevera|frigo|lavadora|lavavajilla|horno|secadora|microondas/i, '🧊'],
-  [/ropa|zapat|abrigo|camis|pantal|vestido/i, '👕'],
-  [/viaje|vuelo|hotel|avion|avión|billete|crucero/i, '✈️'],
-  [/auricular|cascos|airpod|altavoz|bose|sonido/i, '🎧'],
-  [/tele|tv|televis|monitor|pantalla|proyector/i, '📺'],
-  [/bici|bicicleta|patinete|scooter/i, '🚲'],
-  [/dentist|medic|médic|gafas|salud|clinic|clínic|ortodon/i, '💊'],
-  [/perro|gato|veterinar|mascota/i, '🐶'],
-  [/curso|master|máster|carrera|universidad|academia|matricula|matrícula/i, '🎓'],
+  [/ipad|iphone|movil|móvil|samsung|xiaomi|telefon|teléfon/i, 'movil'],
+  [/portatil|portátil|mac|pc|ordenador|laptop/i, 'portatil'],
+  [/play ?station|ps5|ps4|xbox|switch|nintendo|consola|juego/i, 'juegos'],
+  [/coche|moto|car |seat|renault|taller|neumatic|neumátic/i, 'coche'],
+  [/casa|hipoteca|reforma|obra|piso|alquiler/i, 'hogar'],
+  [/sofa|sofá|mesa|silla|colchon|colchón|mueble|armario/i, 'mueble'],
+  [/nevera|frigo|lavadora|lavavajilla|horno|secadora|microondas/i, 'electro'],
+  [/ropa|zapat|abrigo|camis|pantal|vestido/i, 'ropa'],
+  [/viaje|vuelo|hotel|avion|avión|billete|crucero/i, 'viaje'],
+  [/auricular|cascos|airpod|altavoz|bose|sonido/i, 'audio'],
+  [/tele|tv|televis|monitor|pantalla|proyector/i, 'tv'],
+  [/bici|bicicleta|patinete|scooter/i, 'bici'],
+  [/dentist|medic|médic|gafas|salud|clinic|clínic|ortodon/i, 'salud'],
+  [/perro|gato|veterinar|mascota/i, 'mascota'],
+  [/curso|master|máster|carrera|universidad|academia|matricula|matrícula/i, 'estudios'],
 ];
 
 export function sugerirIcono(nombre) {
   const n = String(nombre || '');
-  for (const [re, icono] of PISTAS) if (re.test(n)) return icono;
-  return '🛒';
+  for (const [re, id] of PISTAS) if (re.test(n)) return id;
+  return ICONO_DEFECTO;
 }
 
 /* ---------- Normalización defensiva ----------
@@ -65,6 +107,12 @@ function nDecimal(v) {
 
 function esClaveMes(k) {
   return typeof k === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(k);
+}
+
+function normIcono(valor, nombre) {
+  if (typeof valor !== 'string' || !valor) return sugerirIcono(nombre);
+  if (EMOJI_A_ID[valor]) return EMOJI_A_ID[valor];   // dato de una versión anterior
+  return POR_ID.has(valor) ? valor : sugerirIcono(nombre);
 }
 
 function normGasto(raw) {
@@ -96,7 +144,7 @@ function normGasto(raw) {
   return {
     id: String(raw.id || '') || uid(),
     nombre,
-    icono: typeof raw.icono === 'string' && raw.icono ? raw.icono : sugerirIcono(nombre),
+    icono: normIcono(raw.icono, nombre),
     precioTotal: nDecimal(raw.precioTotal),
     cuotaMensual: nDecimal(raw.cuotaMensual),
     cuotas,

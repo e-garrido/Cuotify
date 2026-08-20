@@ -141,6 +141,18 @@ button, input, select { font: inherit; color: inherit; }
 button { background: none; border: none; cursor: pointer; }
 fieldset { border: none; }
 svg { display: block; }
+
+/* El sprite solo define símbolos: no debe ocupar espacio */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* Trazo común de todos los iconos de categoría */
+.ic {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 [hidden] { display: none !important; }
 
 /* Un único anillo de foco para todo. Antes `outline: none` en los inputs
@@ -550,18 +562,58 @@ body.sin-scroll .screen { overflow: hidden; }
 .gasto-card.is-vencido { border-color: var(--warn); }
 
 .gasto-head { display: flex; align-items: center; gap: var(--sp-2); }
-.gasto-icono {
-  flex: 0 0 auto;
-  width: 32px; height: 32px;
+/* Material de cristal: capa translúcida teñida por la categoría, reflejo
+   especular arriba y sombra interior abajo para dar volumen. Un solo bloque
+   para el icono de la tarjeta y para el selector del formulario. */
+.gasto-icono,
+.icono-opt {
   display: grid;
   place-items: center;
-  font-size: var(--fs-lg);
-  border-radius: var(--r-sm);
-  background: hsl(var(--hue) 70% 94%);
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.28)),
+    hsl(var(--hue) 85% 62% / 0.20);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -7px 12px hsl(var(--hue) 70% 45% / 0.13),
+    0 2px 6px hsl(var(--hue) 45% 30% / 0.16);
+  backdrop-filter: blur(10px) saturate(1.7);
+  -webkit-backdrop-filter: blur(10px) saturate(1.7);
+  color: hsl(var(--hue) 72% 32%);
 }
-:root[data-theme='dark'] .gasto-icono { background: hsl(var(--hue) 40% 20%); }
+
+.gasto-icono {
+  flex: 0 0 auto;
+  width: 36px; height: 36px;
+  border-radius: 11px;
+}
+.gasto-icono .ic { width: 20px; height: 20px; }
+
+:root[data-theme='dark'] .gasto-icono,
+:root[data-theme='dark'] .icono-opt {
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03)),
+    hsl(var(--hue) 70% 55% / 0.22);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -7px 12px rgba(0, 0, 0, 0.32),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+  color: hsl(var(--hue) 80% 76%);
+}
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .gasto-icono { background: hsl(var(--hue) 40% 20%); }
+  :root:not([data-theme='light']) .gasto-icono,
+  :root:not([data-theme='light']) .icono-opt {
+    background:
+      linear-gradient(150deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03)),
+      hsl(var(--hue) 70% 55% / 0.22);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -7px 12px rgba(0, 0, 0, 0.32),
+      0 2px 6px rgba(0, 0, 0, 0.4);
+    color: hsl(var(--hue) 80% 76%);
+  }
 }
 .gasto-name {
   flex: 1;
@@ -721,15 +773,18 @@ body.sin-scroll .screen { overflow: hidden; }
 }
 .icono-opt {
   aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  font-size: var(--fs-lg);
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  transition: transform 0.12s var(--ease), border-color 0.12s;
+  border-radius: 12px;
+  transition: transform 0.14s var(--ease), box-shadow 0.14s;
 }
-.icono-opt.is-active { border-color: var(--accent); background: var(--accent-soft); transform: scale(1.06); }
+.icono-opt .ic { width: 21px; height: 21px; }
+.icono-opt.is-active {
+  transform: scale(1.08);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -7px 12px hsl(var(--hue) 70% 45% / 0.13),
+    0 0 0 2.5px var(--accent),
+    0 4px 12px hsl(var(--hue) 45% 30% / 0.24);
+}
 
 .nota {
   font-size: var(--fs-sm);
@@ -1012,6 +1067,68 @@ body.sin-scroll .screen { overflow: hidden; }
   body { background: var(--bg); }
   .content { padding-inline: var(--sp-5); }
   .icono-picker { grid-template-columns: repeat(8, 44px); justify-content: start; }
+}
+
+/* Entre 640 y 960px la app se presenta como un marco de móvil centrado.
+   Antes el contenido iba en una columna de 560px pero la barra de pestañas
+   se estiraba a todo el ancho, con los iconos desperdigados. */
+@media (min-width: 640px) and (max-width: 959.98px) {
+  :root {
+    --frame-w: 430px;
+    --frame-gap: 22px;
+  }
+
+  body { background: var(--surface-2); }
+
+  .screen {
+    /* Centrado con left/width, no con transform: el transform está
+       reservado para la animación de cambio de pantalla. */
+    left: calc(50% - var(--frame-w) / 2);
+    right: auto;
+    width: var(--frame-w);
+    top: var(--frame-gap);
+    bottom: calc(var(--tabbar-h) + var(--frame-gap));
+    padding-top: var(--sp-4);
+    background: var(--bg);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .tabbar {
+    left: calc(50% - var(--frame-w) / 2);
+    right: auto;
+    width: var(--frame-w);
+    bottom: var(--frame-gap);
+    height: var(--tabbar-h);
+    padding-bottom: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 var(--r-xl) var(--r-xl);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .content,
+  .app-header { max-width: none; }
+
+  /* Las hojas y los avisos se quedan dentro del marco */
+  .sheet-backdrop {
+    left: calc(50% - var(--frame-w) / 2);
+    right: auto;
+    width: var(--frame-w);
+    top: var(--frame-gap);
+    bottom: var(--frame-gap);
+    border-radius: var(--r-xl);
+    overflow: hidden;
+  }
+  .sheet {
+    max-width: none;
+    padding-bottom: var(--sp-6);
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+  .toasts {
+    width: calc(var(--frame-w) - 2 * var(--sp-4));
+    bottom: calc(var(--tabbar-h) + var(--frame-gap) + var(--sp-3));
+  }
 }
 
 @media (min-width: 960px) {
