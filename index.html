@@ -117,7 +117,6 @@
 <section class="screen is-active" data-screen="resumen">
   <header class="app-header">
     <div class="hello">
-      <img src="icons/logo.png" alt="" class="logo-avatar" width="42" height="42">
       <div>
         <h1 class="hello-title">Tus cuotas</h1>
       </div>
@@ -128,8 +127,18 @@
   </header>
 
   <main class="content">
+    <!-- Aviso de cuotas vencidas -->
+    <button type="button" class="banner" id="bannerVencidas" hidden>
+      <svg viewBox="0 0 24 24" class="banner-ic" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 7.5v5.2M12 16.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <span class="banner-txt" id="bannerVencidasTxt"></span>
+      <span class="banner-cta" aria-hidden="true">Revisar</span>
+    </button>
+
     <!-- Saldo -->
-    <section class="saldo-card" id="saldoCard" aria-labelledby="saldoLabel">
+    <section class="saldo-card" id="secSaldo" aria-labelledby="saldoLabel">
       <div class="saldo-top">
         <div>
           <p class="saldo-label" id="saldoLabel">Saldo disponible este mes</p>
@@ -171,7 +180,7 @@
     </section>
 
     <!-- Deuda total -->
-    <section class="block deuda-card" id="deudaCard" hidden aria-labelledby="deudaLabel">
+    <section class="block deuda-card" id="secDeuda" hidden aria-labelledby="deudaLabel">
       <p class="deuda-label" id="deudaLabel">Deuda pendiente</p>
       <p class="deuda-value" id="deudaValue">—</p>
       <div class="deuda-bar" id="deudaBar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
@@ -191,7 +200,7 @@
     </section>
 
     <!-- Próximos cargos -->
-    <section class="block">
+    <section class="block" id="secProx">
       <h2 class="block-title">Próximos cargos</h2>
       <div class="chart">
         <div class="chart-plot">
@@ -207,8 +216,14 @@
       </p>
     </section>
 
+    <!-- Por categoría -->
+    <section class="block" id="secCategorias" hidden>
+      <h2 class="block-title">En qué se te va</h2>
+      <div class="cats" id="catsList"></div>
+    </section>
+
     <!-- Lista -->
-    <section class="block">
+    <section class="block" id="secLista">
       <h2 class="block-title">Mis compras a plazos</h2>
       <div id="gastosList" class="gastos-list"></div>
     </section>
@@ -291,6 +306,22 @@
         <span class="field-label">Primera cuota</span>
         <input id="fFecha" type="date">
       </label>
+
+      <!-- Impacto en los próximos meses, se actualiza al escribir -->
+      <section class="sim" id="simPanel" hidden aria-live="polite">
+        <h2 class="sim-title">Cómo te afecta</h2>
+        <p class="sim-legend">
+          <span class="sim-key"><i class="sim-dot sim-dot--base"></i>Ya comprometido</span>
+          <span class="sim-key"><i class="sim-dot sim-dot--nuevo"></i>Este gasto</span>
+        </p>
+        <div class="sim-plot">
+          <div class="sim-ref" id="simRef" hidden>
+            <span class="sim-ref-label" id="simRefLabel"></span>
+          </div>
+          <div class="sim-bars" id="simBars"></div>
+        </div>
+        <p class="sim-veredicto" id="simVeredicto"></p>
+      </section>
 
       <div class="field" id="historialWrap" hidden>
         <span class="field-label">Historial de cuotas</span>

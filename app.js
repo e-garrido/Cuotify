@@ -4,12 +4,18 @@ import {
   state, load, save, uid, sugerirIcono, ICONOS, iconoValido, ICONO_DEFECTO,
   serializar, nombreCopia, importar,
 } from './js/state.js';
-import { euro, hoyISO, nowKey, proximoPago, estaPagado, vencidasDe, terminado, pagadas } from './js/calc.js';
+import {
+  euro, hoyISO, nowKey, proximoPago, estaPagado, vencidasDe, terminado, pagadas,
+  vencidasTotales,
+} from './js/calc.js';
 import {
   $, $$, toast, abrirHoja, cerrarHoja, conectarHoja, confirmar, aplicarTema,
   parseImporte, parseEntero, ponImporte, descargar, haptic,
 } from './js/ui.js';
-import { setAcciones, renderResumen, renderGastosList, renderHistorial, resetAnimacion } from './js/render.js';
+import {
+  setAcciones, renderResumen, renderGastosList, renderHistorial, renderSimulacion,
+  resetAnimacion,
+} from './js/render.js';
 
 /* =====================================================================
    Navegación
@@ -53,8 +59,21 @@ window.addEventListener('popstate', (e) => go(e.state?.screen || 'resumen', fals
 /* =====================================================================
    Persistencia con aviso de fallo
    ===================================================================== */
+/* Número sobre el icono de la app con las cuotas sin marcar.
+   Safari lo admite desde iOS 16.4 en apps instaladas en la pantalla de
+   inicio. Se refresca al abrir la app, no por su cuenta. */
+function actualizarInsignia() {
+  if (!('setAppBadge' in navigator)) return;
+  const n = vencidasTotales(state.gastos);
+  if (n > 0) navigator.setAppBadge(n).catch(() => {});
+  else navigator.clearAppBadge?.().catch(() => {});
+}
+
 function persistir() {
-  if (save()) return true;
+  if (save()) {
+    actualizarInsignia();
+    return true;
+  }
   toast('No se han podido guardar los cambios. ¿Almacenamiento lleno o navegación privada?', {
     tipo: 'error',
   });
@@ -90,6 +109,7 @@ function abrirNuevo() {
   $('#fDelete').hidden = true;
   $('#historialWrap').hidden = true;
   actualizarNotaIntereses();
+  refrescarSimulacion();
   go('add');
   requestAnimationFrame(() => $('#fNombre').focus());
 }
@@ -110,6 +130,7 @@ function abrirEditar(id) {
   $('#fDelete').hidden = false;
   renderHistorial(g);
   actualizarNotaIntereses();
+  refrescarSimulacion();
   go('add');
 }
 
@@ -169,6 +190,24 @@ function autocalcular() {
   } else if (objetivo === 'fCuotasTotales' && precio && cuota && cuota > 0) {
     $('#fCuotasTotales').value = Math.max(1, Math.round(precio / cuota));
   }
+}
+
+/* Lo que hay escrito ahora mismo en el formulario, para simular con ello */
+function borradorActual() {
+  const cuota = parseImporte($('#fCuota').value);
+  const cuotas = parseEntero($('#fCuotasTotales').value, 1);
+  if (!cuota || !cuotas) return null;
+  return {
+    cuotaMensual: cuota,
+    cuotas,
+    fechaInicio: $('#fFecha').value || hoyISO(),
+    // Al editar, el gasto no debe contarse dos veces en la base
+    excluirId: editandoId,
+  };
+}
+
+function refrescarSimulacion() {
+  renderSimulacion(borradorActual());
 }
 
 function actualizarNotaIntereses() {
@@ -463,12 +502,19 @@ function conectar() {
     el.addEventListener('input', () => {
       marcarTocado(id);
       actualizarNotaIntereses();
+      refrescarSimulacion();
     });
     el.addEventListener('blur', () => {
       autocalcular();
       actualizarNotaIntereses();
+      refrescarSimulacion();
     });
   });
+  $('#fFecha').addEventListener('change', refrescarSimulacion);
+
+  // El aviso de cuotas sin marcar lleva a la lista
+  $('#bannerVencidas').addEventListener('click', () => go('gastos'));
+
   $('#formulario').addEventListener('submit', (e) => {
     e.preventDefault();
     guardarForm();
@@ -576,4 +622,12 @@ conectar();
 history.replaceState({ screen: 'resumen' }, '');
 go('resumen', false);
 pintarAjustes();
+actualizarInsignia();
+
+/* Atajo del icono de la app: ?nuevo=1 abre directamente el formulario */
+if (new URLSearchParams(location.search).has('nuevo')) {
+  history.replaceState({ screen: 'resumen' }, '', location.pathname);
+  abrirNuevo();
+}
+
 registrarSW();

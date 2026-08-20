@@ -242,12 +242,6 @@ body.sin-scroll .screen { overflow: hidden; }
   letter-spacing: -0.6px;
   line-height: 1.15;
 }
-.logo-avatar {
-  width: 42px; height: 42px;
-  border-radius: var(--r-md);
-  object-fit: cover;
-  box-shadow: var(--shadow);
-}
 .add-chip {
   flex: 0 0 auto;
   width: 42px; height: 42px;
@@ -543,6 +537,149 @@ body.sin-scroll .screen { overflow: hidden; }
   box-shadow: var(--shadow);
   z-index: 5;
 }
+
+/* ===================== Aviso de cuotas sin marcar ===================== */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  text-align: left;
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  transition: transform 0.12s var(--ease);
+}
+.banner:active { transform: scale(0.985); }
+.banner-ic { width: 20px; height: 20px; flex: 0 0 auto; }
+.banner-txt { flex: 1; font-size: var(--fs-sm); font-weight: 700; line-height: 1.35; }
+.banner-cta { font-size: var(--fs-xs); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ===================== En qué se te va =====================
+   Barras de una sola tonalidad: se comparan magnitudes entre categorías;
+   la identidad la dan el icono y el nombre de cada fila. */
+.cats { display: flex; flex-direction: column; gap: var(--sp-3); }
+.cat {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  box-shadow: var(--shadow);
+}
+.cat-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
+.cat-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.cat-nombre { font-size: var(--fs-sm); font-weight: 700; }
+.cat-importe { font-size: var(--fs-sm); font-weight: 800; font-variant-numeric: tabular-nums; }
+.cat-track {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+.cat-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  transition: width 0.6s var(--ease);
+}
+.cat-sub { font-size: var(--fs-xs); color: var(--on-surface-2); font-weight: 600; }
+
+/* ===================== Simulador de impacto ===================== */
+.sim {
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+}
+.sim-title { font-size: var(--fs-md); font-weight: 800; margin-bottom: var(--sp-2); }
+.sim-legend { display: flex; gap: var(--sp-4); margin-bottom: var(--sp-3); flex-wrap: wrap; }
+.sim-key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--on-surface-2);
+}
+.sim-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.sim-dot--base { background: var(--bar); }
+.sim-dot--nuevo { background: var(--accent); }
+
+.sim-plot { position: relative; }
+.sim-bars { display: flex; gap: var(--sp-2); }
+.sim-slot {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: var(--chart-val) var(--chart-track) var(--chart-mes);
+  justify-items: center;
+  align-items: end;
+}
+.sim-val {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--on-surface-2);
+  font-variant-numeric: tabular-nums;
+}
+.sim-slot.is-excede .sim-val { color: var(--danger); }
+.sim-track {
+  width: 100%;
+  height: 100%;
+  max-width: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* 2px de hueco entre los dos tramos: separa sin dibujar bordes */
+  gap: 2px;
+}
+.sim-base, .sim-nuevo { display: block; width: 100%; }
+.sim-base { background: var(--bar); border-radius: 0 0 2px 2px; }
+.sim-nuevo { background: var(--accent); border-radius: 4px 4px 2px 2px; }
+.sim-slot.is-excede .sim-nuevo { background: var(--danger); }
+.sim-mes {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--on-surface-2);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding-top: var(--sp-1);
+  white-space: nowrap;
+}
+.sim-ref {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(var(--chart-mes) + var(--y, 0) * var(--chart-track));
+  border-top: 1px solid var(--border);
+  border-top-color: color-mix(in srgb, var(--on-surface-2) 50%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+.sim-ref-label {
+  position: absolute;
+  right: 0;
+  top: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--on-surface-2);
+  background: var(--surface-2);
+  padding-inline: var(--sp-1);
+  border-radius: var(--r-sm);
+}
+.sim-veredicto {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--success);
+}
+.sim-veredicto.is-mal { color: var(--danger); }
 
 /* ===================== Tarjetas de gasto ===================== */
 .gastos-list { display: flex; flex-direction: column; gap: var(--sp-3); }
@@ -1179,16 +1316,24 @@ body.sin-scroll .screen { overflow: hidden; }
     max-width: 1120px;
     display: grid;
     grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-    grid-template-areas: 'saldo lista' 'deuda lista' 'prox lista';
-    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'aviso aviso'
+      'saldo lista'
+      'deuda lista'
+      'prox  lista'
+      'cat   lista';
+    grid-template-rows: auto auto auto auto 1fr;
     gap: var(--sp-5) var(--sp-6);
     align-items: start;
   }
-  .screen[data-screen='resumen'] .content > section:nth-of-type(1) { grid-area: saldo; }
-  .screen[data-screen='resumen'] .content > section:nth-of-type(2) { grid-area: deuda; }
-  .screen[data-screen='resumen'] .content > section:nth-of-type(3) { grid-area: prox; }
-  .screen[data-screen='resumen'] .content > section:nth-of-type(4) { grid-area: lista; }
-  .screen[data-screen='resumen'] .content > section:nth-of-type(n + 2) { margin-top: 0; }
+  /* Por id y no por posición: añadir una sección más no descoloca el resto */
+  #secSaldo { grid-area: saldo; }
+  #secDeuda { grid-area: deuda; }
+  #secProx { grid-area: prox; }
+  #secCategorias { grid-area: cat; }
+  #secLista { grid-area: lista; }
+  .screen[data-screen='resumen'] .content > section { margin-top: 0; }
+  #bannerVencidas { grid-area: aviso; }
   .screen[data-screen='resumen'] .app-header { max-width: 1120px; }
   /* Columna más estrecha: seis meses deben caber sin cortar el último */
   .screen[data-screen='resumen'] .bar-slot { flex-basis: 60px; }

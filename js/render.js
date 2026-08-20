@@ -7,6 +7,7 @@ import {
   pagadas, terminado, finKey, mesesDelPlan, estaPagado,
   deudaTotal, totalPagado, pendienteTotalDe, libreEn, vencidasDe, intereses,
   haEmpezado, adquiridos, fechaCorta,
+  porCategoria, simular, vencidasTotales,
 } from './calc.js';
 import { $, animarCifra, sinMovimiento } from './ui.js';
 
@@ -37,7 +38,7 @@ export function renderResumen() {
   saldoPrevio = saldo;
 
   const negativo = saldo < 0;
-  $('#saldoCard').classList.toggle('is-negativo', negativo);
+  $('#secSaldo').classList.toggle('is-negativo', negativo);
 
   const activos = activosEn(state.gastos, K).length;
   const sinPresupuesto = state.presupuesto <= 0;
@@ -56,6 +57,8 @@ export function renderResumen() {
   renderPendienteMes(comprometido, pendiente, K);
   renderDeuda();
   renderProximos();
+  renderCategorias();
+  renderBanner();
   renderGastos($('#gastosList'), { admin: false });
 }
 
@@ -113,7 +116,7 @@ function renderPendienteMes(comprometido, pendiente, K) {
    Deuda total: el dato que la app no mostraba en ninguna parte
    ===================================================================== */
 function renderDeuda() {
-  const card = $('#deudaCard');
+  const card = $('#secDeuda');
   const pendiente = deudaTotal(state.gastos);
   const pagado = totalPagado(state.gastos);
 
@@ -249,6 +252,144 @@ function ocultarTip() {
   const tip = $('#chartTip');
   if (tip) tip.hidden = true;
   document.querySelectorAll('.bar-slot.is-open').forEach((s) => s.classList.remove('is-open'));
+}
+
+/* =====================================================================
+   Aviso de cuotas sin marcar
+   La tarjeta de cada gasto ya lo avisa, pero solo lo ves al llegar a ella.
+   ===================================================================== */
+function renderBanner() {
+  const b = $('#bannerVencidas');
+  const n = vencidasTotales(state.gastos);
+  b.hidden = n === 0;
+  if (n) {
+    $('#bannerVencidasTxt').textContent =
+      `Tienes ${n} cuota${n === 1 ? '' : 's'} sin marcar como pagada${n === 1 ? '' : 's'}`;
+  }
+}
+
+/* =====================================================================
+   En qué se te va: reparto de la deuda por categoría.
+   Una sola tonalidad en las barras: aquí se comparan magnitudes, y la
+   identidad ya la dan el icono y el nombre de cada fila.
+   ===================================================================== */
+function renderCategorias() {
+  const sec = $('#secCategorias');
+  const cont = $('#catsList');
+  const filas = porCategoria(state.gastos);
+
+  sec.hidden = filas.length < 2;   // con una sola categoría no reparte nada
+  if (sec.hidden) return;
+
+  const mayor = filas[0].pendiente || 1;
+  cont.innerHTML = '';
+
+  for (const c of filas) {
+    const id = iconoValido(c.id);
+    const pct = Math.round((c.pendiente / mayor) * 100);
+
+    const fila = document.createElement('div');
+    fila.className = 'cat';
+    fila.style.setProperty('--hue', hueDeIcono(id));
+    fila.innerHTML = `
+      <span class="gasto-icono"><svg class="ic" aria-hidden="true"><use/></svg></span>
+      <span class="cat-txt">
+        <span class="cat-head">
+          <span class="cat-nombre"></span>
+          <span class="cat-importe"></span>
+        </span>
+        <span class="cat-track"><span class="cat-fill"></span></span>
+        <span class="cat-sub"></span>
+      </span>
+    `;
+    fila.querySelector('use').setAttribute('href', `#ic-${id}`);
+    fila.querySelector('.cat-nombre').textContent = nombreDeIcono(id);
+    fila.querySelector('.cat-importe').textContent = euro(c.pendiente);
+    fila.querySelector('.cat-sub').textContent =
+      `${c.n} gasto${c.n === 1 ? '' : 's'}` + (c.mensual ? ` · ${euro(c.mensual)}/mes` : '');
+
+    const fill = fila.querySelector('.cat-fill');
+    if (sinMovimiento()) fill.style.width = `${pct}%`;
+    else requestAnimationFrame(() => (fill.style.width = `${pct}%`));
+
+    cont.append(fila);
+  }
+}
+
+/* =====================================================================
+   Simulador: qué pasa con los próximos meses si añades este gasto.
+   `borrador` lo arma app.js con lo que hay escrito en el formulario.
+   ===================================================================== */
+export function renderSimulacion(borrador) {
+  const panel = $('#simPanel');
+
+  if (!borrador || !borrador.cuotaMensual || !borrador.cuotas) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+
+  const meses = simular(state.gastos, borrador);
+  const tope =
+    Math.max(...meses.map((m) => m.total), state.presupuesto > 0 ? state.presupuesto : 0) || 1;
+
+  // Línea del presupuesto, con holgura para que no quede pegada al techo
+  const escala = Math.max(tope * 1.12, 1);
+  const ref = $('#simRef');
+  ref.hidden = state.presupuesto <= 0;
+  if (state.presupuesto > 0) {
+    ref.style.setProperty('--y', String(state.presupuesto / escala));
+    $('#simRefLabel').textContent = euroCorto(state.presupuesto);
+  }
+
+  const cont = $('#simBars');
+  cont.innerHTML = '';
+  for (const m of meses) {
+    const excede = state.presupuesto > 0 && m.total > state.presupuesto;
+    const slot = document.createElement('div');
+    slot.className = 'sim-slot' + (excede ? ' is-excede' : '');
+    slot.innerHTML = `
+      <span class="sim-val"></span>
+      <span class="sim-track">
+        <span class="sim-nuevo"></span>
+        <span class="sim-base"></span>
+      </span>
+      <span class="sim-mes"></span>
+    `;
+    slot.querySelector('.sim-val').textContent = m.total ? euroCorto(m.total) : '—';
+    slot.querySelector('.sim-mes').textContent = m.offset === 0 ? 'Ahora' : m.label;
+    slot.querySelector('.sim-base').style.height = `${(m.base / escala) * 100}%`;
+    slot.querySelector('.sim-nuevo').style.height = `${(m.nuevo / escala) * 100}%`;
+    slot.setAttribute(
+      'aria-label',
+      `${keyLabelLargo(m.key)}: ${euro(m.total)}, de los cuales ${euro(m.nuevo)} de este gasto`
+    );
+    cont.append(slot);
+  }
+
+  $('#simVeredicto').textContent = veredicto(meses);
+  $('#simVeredicto').className =
+    'sim-veredicto' + (meses.some((m) => state.presupuesto > 0 && m.total > state.presupuesto)
+      ? ' is-mal'
+      : '');
+}
+
+function veredicto(meses) {
+  const conCargo = meses.filter((m) => m.nuevo > 0);
+  if (!conCargo.length) return 'Este gasto no cae dentro de los próximos 6 meses.';
+
+  if (state.presupuesto <= 0) {
+    const antes = Math.max(...meses.map((m) => m.base));
+    const despues = Math.max(...meses.map((m) => m.total));
+    return `Tu mes más cargado pasaría de ${euro(antes)} a ${euro(despues)}. Define un presupuesto para saber si te cabe.`;
+  }
+
+  const peor = meses.reduce((a, b) => (b.total > a.total ? b : a));
+  if (peor.total > state.presupuesto) {
+    return `En ${keyLabel(peor.key)} te pasarías ${euro(peor.total - state.presupuesto)} del presupuesto.`;
+  }
+  const margen = Math.min(...meses.map((m) => state.presupuesto - m.total));
+  return `Te cabe: te seguirían quedando al menos ${euro(margen)} libres al mes.`;
 }
 
 /* =====================================================================

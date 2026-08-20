@@ -11,7 +11,7 @@
    sirviéndose desde caché.
    ===================================================================== */
 
-const VERSION = 'v9';
+const VERSION = 'v11';
 const CACHE = `cuotify-${VERSION}`;
 
 const ASSETS = [
@@ -24,7 +24,6 @@ const ASSETS = [
   './js/ui.js',
   './js/render.js',
   './manifest.webmanifest',
-  './icons/logo.png',
   './icons/apple-touch-icon.png',
   './icons/icon-192.png',
   './icons/icon-512.png',

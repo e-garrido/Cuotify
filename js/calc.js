@@ -227,6 +227,52 @@ export function intereses(g) {
   return num(g.precioTotal) > 0 && extra > 0.01 ? extra : 0;
 }
 
+/* ---------- Desglose por categoría ----------
+   Agrupa por el icono del gasto, que desde el cambio de emojis a iconos
+   ES la categoría. Solo cuenta lo adquirido, igual que la deuda total.
+   Devuelve ids: el nombre y el tono los pone quien pinta, porque viven
+   en state.js y este módulo no depende de nadie. */
+export function porCategoria(gastos) {
+  const mapa = new Map();
+  for (const g of adquiridos(gastos)) {
+    const id = g.icono || 'compra';
+    const e = mapa.get(id) || { id, pendiente: 0, mensual: 0, n: 0 };
+    e.pendiente += pendienteTotalDe(g);
+    if (!terminado(g)) e.mensual += num(g.cuotaMensual);
+    e.n += 1;
+    mapa.set(id, e);
+  }
+  return [...mapa.values()]
+    .filter((e) => e.pendiente > 0)
+    .sort((a, b) => b.pendiente - a.pendiente);
+}
+
+/* ---------- Simulación de un gasto que aún no existe ----------
+   `borrador` = { cuotaMensual, cuotas, fechaInicio, excluirId }.
+   `excluirId` saca de la base el gasto que se está editando, para que al
+   editar se vea el cambio y no el importe contado dos veces. */
+export function simular(gastos, borrador, meses = 6) {
+  const otros = borrador.excluirId
+    ? gastos.filter((g) => g.id !== borrador.excluirId)
+    : gastos;
+  const candidato = {
+    fechaInicio: borrador.fechaInicio,
+    cuotas: borrador.cuotas,
+    cuotaMensual: borrador.cuotaMensual,
+  };
+  return Array.from({ length: meses }, (_, i) => {
+    const m = monthInfo(i);
+    const base = cargosMes(otros, m.key);
+    const nuevo = cargoDe(candidato, m.key);
+    return { key: m.key, label: m.label, offset: i, base, nuevo, total: base + nuevo };
+  });
+}
+
+/* Total de cuotas vencidas sin marcar, para la insignia del icono */
+export function vencidasTotales(gastos) {
+  return gastos.reduce((s, g) => s + vencidasDe(g).length, 0);
+}
+
 /* Mes en el que se termina de pagar todo. null si no hay deuda viva */
 export function libreEn(gastos) {
   const vivos = adquiridos(gastos).filter((g) => !terminado(g));
