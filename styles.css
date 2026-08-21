@@ -22,7 +22,7 @@
      borde inferior. El hueco es lo que el contenido debe dejar libre. */
   --tabbar-h: 64px;
   --tabbar-inset: 10px;
-  --tabbar-bottom: calc(var(--sab) * 0.4 + 8px);
+  --tabbar-bottom: calc(var(--sab) * 0.2 + 4px);
   --tabbar-hueco: calc(var(--tabbar-h) + var(--tabbar-bottom) + var(--sp-3));
   --app-max: 560px;
   --rail-w: 216px;
