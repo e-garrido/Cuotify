@@ -99,15 +99,21 @@ async function avisarHoy(env) {
     cursor = lista.list_complete ? null : lista.cursor;
 
     for (const clave of lista.keys) {
-      const dato = await env.SUSCRIPCIONES.get(clave.name, 'json');
-      if (!dato || !dato.dias.includes(hoy)) continue;
+      // Un fallo con una suscripcion no puede dejar sin aviso a las demas:
+      // el cron solo pasa una vez al dia y no hay segunda oportunidad.
+      try {
+        const dato = await env.SUSCRIPCIONES.get(clave.name, 'json');
+        if (!dato || !Array.isArray(dato.dias) || !dato.dias.includes(hoy)) continue;
 
-      const estado = await enviarPush(dato.endpoint, env);
-      // 404/410 = el navegador tiró la suscripción: la borramos
-      if (estado === 404 || estado === 410) {
-        await env.SUSCRIPCIONES.delete(clave.name);
-      } else if (estado >= 200 && estado < 300) {
-        enviados++;
+        const estado = await enviarPush(dato.endpoint, env);
+        // 404/410 = el navegador tiro la suscripcion: la borramos
+        if (estado === 404 || estado === 410) {
+          await env.SUSCRIPCIONES.delete(clave.name);
+        } else if (estado >= 200 && estado < 300) {
+          enviados++;
+        }
+      } catch (e) {
+        console.log(`fallo con ${clave.name}: ${e.message}`);
       }
     }
   } while (cursor);

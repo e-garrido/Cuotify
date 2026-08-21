@@ -11,7 +11,7 @@ crons = ["0 7 * * *"]
 #   npx wrangler kv namespace create SUSCRIPCIONES
 [[kv_namespaces]]
 binding = "SUSCRIPCIONES"
-id = "PENDIENTE_DE_RELLENAR"
+id = "ecb1231e7aa24c1cb43efa1ff4bea820"
 
 [vars]
 # La pública no es secreta: va también en el cliente
