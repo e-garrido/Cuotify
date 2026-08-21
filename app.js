@@ -69,6 +69,39 @@ function actualizarInsignia() {
   else navigator.clearAppBadge?.().catch(() => {});
 }
 
+/* Safari en iPhone solo deja poner insignia si has concedido el permiso de
+   notificaciones, así que hay que pedirlo aunque no mandemos ninguna. */
+function estadoInsignia() {
+  if (!('setAppBadge' in navigator)) {
+    return { txt: 'No disponible en este navegador', pedir: false };
+  }
+  if (!('Notification' in window)) return { txt: 'Activada', pedir: false };
+  const p = Notification.permission;
+  if (p === 'granted') return { txt: 'Activada', pedir: false };
+  if (p === 'denied') {
+    return { txt: 'Bloqueada: actívala en los ajustes del sistema', pedir: false };
+  }
+  return { txt: 'Toca para permitirla', pedir: true };
+}
+
+async function pedirInsignia() {
+  const e = estadoInsignia();
+  if (!e.pedir) {
+    toast(e.txt);
+    return;
+  }
+  try {
+    const r = await Notification.requestPermission();
+    toast(r === 'granted' ? 'Insignia activada' : 'Permiso denegado', {
+      tipo: r === 'granted' ? 'info' : 'error',
+    });
+  } catch (err) {
+    toast('Este navegador no permite activarla', { tipo: 'error' });
+  }
+  actualizarInsignia();
+  pintarAjustes();
+}
+
 function persistir() {
   if (save()) {
     actualizarInsignia();
@@ -89,15 +122,25 @@ function refrescar() {
    Formulario de gasto
    ===================================================================== */
 let editandoId = null;
+/* Desde qué pantalla se abrió el formulario, para que "‹" devuelva ahí.
+   Antes siempre volvía al resumen aunque vinieras de Gastos. */
+let pantallaPrevia = 'resumen';
 let iconoManual = false;
 let tocados = [];
 const TRIO = ['fPrecio', 'fCuota', 'fCuotasTotales'];
+
+function pantallaActual() {
+  const s = document.querySelector('.screen.is-active');
+  const p = s ? s.dataset.screen : 'resumen';
+  return p === 'add' ? pantallaPrevia : p;
+}
 
 function gastoActual() {
   return state.gastos.find((g) => g.id === editandoId) || null;
 }
 
 function abrirNuevo() {
+  pantallaPrevia = pantallaActual();
   editandoId = null;
   iconoManual = false;
   tocados = [];
@@ -117,6 +160,7 @@ function abrirNuevo() {
 function abrirEditar(id) {
   const g = state.gastos.find((x) => x.id === id);
   if (!g) return;
+  pantallaPrevia = pantallaActual();
   editandoId = id;
   iconoManual = true;
   tocados = [];
@@ -288,7 +332,7 @@ function guardarForm() {
   btn.disabled = true;
   setTimeout(() => (btn.disabled = false), 600);
 
-  go('resumen');
+  go(pantallaPrevia);
 }
 
 /* =====================================================================
@@ -409,6 +453,7 @@ function pintarAjustes() {
     : 'Sin definir';
   const n = state.gastos.length;
   $('#ajustesResumen').textContent = `${n} gasto${n === 1 ? '' : 's'} guardado${n === 1 ? '' : 's'} en este dispositivo`;
+  $('#estadoInsignia').textContent = estadoInsignia().txt;
 }
 
 async function onImportar(archivo) {
@@ -489,6 +534,7 @@ function conectar() {
   $$('[data-go]').forEach((b) =>
     b.addEventListener('click', () => (b.dataset.go === 'add' ? abrirNuevo() : go(b.dataset.go)))
   );
+  $('#btnBack').addEventListener('click', () => go(pantallaPrevia));
 
   // Formulario. Ojo: #fSave es type="submit", así que NO lleva listener de
   // click propio; si lo lleva, un clic dispara click + submit y guarda dos
@@ -572,6 +618,7 @@ function conectar() {
     e.target.value = '';
   });
   $('#btnBorrarTodo').addEventListener('click', onBorrarTodo);
+  $('#btnInsignia').addEventListener('click', pedirInsignia);
 
   // El tema automático debe repintar la barra de estado al cambiar el sistema
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {

@@ -11,7 +11,7 @@
    sirviéndose desde caché.
    ===================================================================== */
 
-const VERSION = 'v11';
+const VERSION = 'v12';
 const CACHE = `cuotify-${VERSION}`;
 
 const ASSETS = [
