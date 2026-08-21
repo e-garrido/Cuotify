@@ -1,0 +1,6 @@
+node_modules/
+.wrangler/
+
+# Contienen la clave privada VAPID: NUNCA deben subirse
+.dev.vars
+CLAVES.txt

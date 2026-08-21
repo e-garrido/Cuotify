@@ -861,6 +861,8 @@ body.sin-scroll .screen { overflow: hidden; }
 .pagar-btn:active { transform: scale(0.92); }
 .pagar-btn:disabled { opacity: 0.45; cursor: default; }
 
+.cta-vacio { max-width: 320px; margin-inline: auto; }
+
 .lista-vacia {
   text-align: center;
   color: var(--on-surface-2);

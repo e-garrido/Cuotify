@@ -1,0 +1,23 @@
+name = "cuotify-avisos"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Un solo aviso al día. Los cron de Cloudflare van en UTC:
+# 07:00 UTC = 9:00 en España en verano, 8:00 en invierno.
+[triggers]
+crons = ["0 7 * * *"]
+
+# Rellena el id tras crear el espacio con:
+#   npx wrangler kv namespace create SUSCRIPCIONES
+[[kv_namespaces]]
+binding = "SUSCRIPCIONES"
+id = "PENDIENTE_DE_RELLENAR"
+
+[vars]
+# La pública no es secreta: va también en el cliente
+VAPID_PUBLIC_KEY = "BHOTMXrcWfLiwn8qBviJnGruN3qM94lhZ-zorhkzFCiHU2pV2XAbZpOob-0Oia53gDaiczCXdmUUqSXxkPMUoi0"
+# Apple exige que el "subject" sea un mailto: o una URL https
+VAPID_SUBJECT = "mailto:tsgcurrosanse@gmail.com"
+
+# VAPID_PRIVATE_KEY NO va aquí. Se guarda como secreto:
+#   npx wrangler secret put VAPID_PRIVATE_KEY

@@ -268,6 +268,42 @@ export function simular(gastos, borrador, meses = 6) {
   });
 }
 
+/* ---------- Agenda de avisos ----------
+   Cuotas que vencen en los próximos `dias`, ya sin pagar. Se guarda en
+   IndexedDB para que el service worker pueda componer la notificación
+   sin que estos datos salgan nunca del dispositivo. */
+export function proximosAvisos(gastos, dias = 90) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const limite = new Date(hoy);
+  limite.setDate(limite.getDate() + dias);
+
+  const avisos = [];
+  for (const g of gastos) {
+    if (terminado(g)) continue;
+    mesesDelPlan(g).forEach((clave, i) => {
+      if (estaPagado(g, clave)) return;
+      const f = fechaCuota(g, i);
+      f.setHours(0, 0, 0, 0);
+      if (f < hoy || f > limite) return;
+      avisos.push({
+        fecha: aISO(f),
+        nombre: g.nombre,
+        importe: num(g.cuotaMensual),
+        icono: g.icono || 'compra',
+      });
+    });
+  }
+  return avisos.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+}
+
+/* Días del mes en que hay algún vencimiento. Es LO ÚNICO que sube al
+   servidor: sin importes, sin nombres, sin cuántos gastos tienes. */
+export function diasConVencimiento(gastos, dias = 90) {
+  const d = proximosAvisos(gastos, dias).map((a) => Number(a.fecha.slice(8, 10)));
+  return [...new Set(d)].sort((a, b) => a - b);
+}
+
 /* Total de cuotas vencidas sin marcar, para la insignia del icono */
 export function vencidasTotales(gastos) {
   return gastos.reduce((s, g) => s + vencidasDe(g).length, 0);

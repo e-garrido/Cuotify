@@ -1,0 +1,10 @@
+# Pruebas de desarrollo: no forman parte del sitio
+pruebas/
+
+# Dependencias y estado local del worker
+worker/node_modules/
+worker/.wrangler/
+
+# Contienen la clave privada VAPID: NUNCA deben subirse
+worker/.dev.vars
+worker/CLAVES.txt

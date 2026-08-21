@@ -12,6 +12,7 @@ import {
   $, $$, toast, abrirHoja, cerrarHoja, conectarHoja, confirmar, aplicarTema,
   parseImporte, parseEntero, ponImporte, descargar, haptic,
 } from './js/ui.js';
+import * as Push from './js/push.js';
 import {
   setAcciones, renderResumen, renderGastosList, renderHistorial, renderSimulacion,
   resetAnimacion,
@@ -84,6 +85,44 @@ function estadoInsignia() {
   return { txt: 'Toca para permitirla', pedir: true };
 }
 
+/* ---------- Avisos de vencimiento ---------- */
+let avisosActivos = false;
+
+async function refrescarEstadoAvisos() {
+  const el = $('#estadoAvisos');
+  if (!el) return;
+
+  if (!Push.soportado()) {
+    el.textContent = 'No disponible en este navegador';
+  } else if (!Push.configurado()) {
+    el.textContent = 'Falta desplegar el servidor de avisos';
+  } else if (!Push.instalada() && /iPhone|iPad/i.test(navigator.userAgent)) {
+    el.textContent = 'Instala la app en la pantalla de inicio';
+  } else {
+    avisosActivos = await Push.estaActivo();
+    el.textContent = avisosActivos ? 'Activados · toca para desactivar' : 'Desactivados · toca para activar';
+  }
+}
+
+async function alternarAvisos() {
+  if (!Push.soportado()) return toast('Este navegador no admite avisos', { tipo: 'error' });
+  if (!Push.configurado()) {
+    return toast('Primero hay que desplegar el servidor de avisos', { tipo: 'error' });
+  }
+  if (!Push.instalada() && /iPhone|iPad/i.test(navigator.userAgent)) {
+    return toast('En iPhone tienes que añadir Cuotify a la pantalla de inicio', { tipo: 'error' });
+  }
+
+  if (avisosActivos) {
+    await Push.desactivar();
+    toast('Avisos desactivados');
+  } else {
+    const r = await Push.activar(state.gastos);
+    toast(r.ok ? 'Avisos activados' : r.motivo, { tipo: r.ok ? 'info' : 'error' });
+  }
+  await refrescarEstadoAvisos();
+}
+
 async function pedirInsignia() {
   const e = estadoInsignia();
   if (!e.pedir) {
@@ -105,6 +144,9 @@ async function pedirInsignia() {
 function persistir() {
   if (save()) {
     actualizarInsignia();
+    // La agenda de avisos tiene que seguir a los datos, o avisaría de
+    // cuotas que ya has pagado. No bloquea: si falla, la app sigue igual.
+    Push.sincronizar(state.gastos).catch(() => {});
     return true;
   }
   toast('No se han podido guardar los cambios. ¿Almacenamiento lleno o navegación privada?', {
@@ -437,7 +479,7 @@ async function onEliminar(id) {
   });
 }
 
-setAcciones({ onPagar, onEditar: abrirEditar, onEliminar, onAlDia, onToggleMes });
+setAcciones({ onPagar, onEditar: abrirEditar, onEliminar, onAlDia, onToggleMes, onNuevo: abrirNuevo });
 
 /* =====================================================================
    Ajustes: tema, copia de seguridad, borrado
@@ -454,6 +496,7 @@ function pintarAjustes() {
   const n = state.gastos.length;
   $('#ajustesResumen').textContent = `${n} gasto${n === 1 ? '' : 's'} guardado${n === 1 ? '' : 's'} en este dispositivo`;
   $('#estadoInsignia').textContent = estadoInsignia().txt;
+  refrescarEstadoAvisos();
 }
 
 async function onImportar(archivo) {
@@ -619,6 +662,7 @@ function conectar() {
   });
   $('#btnBorrarTodo').addEventListener('click', onBorrarTodo);
   $('#btnInsignia').addEventListener('click', pedirInsignia);
+  $('#btnAvisos').addEventListener('click', alternarAvisos);
 
   // El tema automático debe repintar la barra de estado al cambiar el sistema
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {

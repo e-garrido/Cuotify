@@ -121,9 +121,6 @@
         <h1 class="hello-title">Tus cuotas</h1>
       </div>
     </div>
-    <button type="button" class="add-chip" data-go="add" aria-label="Añadir gasto">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
-    </button>
   </header>
 
   <main class="content">
@@ -370,10 +367,18 @@
     <section class="block">
       <h2 class="block-title">Avisos</h2>
       <p class="aviso">
-        Cuotify puede mostrar sobre su icono cuántas cuotas tienes sin marcar.
-        No son notificaciones: el número se actualiza al abrir la app.
-        En iPhone hace falta tenerla instalada en la pantalla de inicio y dar permiso.
+        El aviso te llega el día que vence una cuota. El servidor solo sabe
+        <b>en qué días</b> tienes vencimientos: los nombres y los importes se
+        quedan en este dispositivo y el mensaje lo redacta tu propio móvil.
+        En iPhone hace falta instalar la app en la pantalla de inicio.
       </p>
+      <button type="button" class="fila" id="btnAvisos">
+        <span class="fila-texto">
+          <span class="fila-titulo">Avisos de vencimiento</span>
+          <span class="fila-sub" id="estadoAvisos">—</span>
+        </span>
+        <span class="fila-chevron" aria-hidden="true">›</span>
+      </button>
       <button type="button" class="fila" id="btnInsignia">
         <span class="fila-texto">
           <span class="fila-titulo">Insignia en el icono</span>

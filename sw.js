@@ -11,7 +11,7 @@
    sirviéndose desde caché.
    ===================================================================== */
 
-const VERSION = 'v12';
+const VERSION = 'v14';
 const CACHE = `cuotify-${VERSION}`;
 
 const ASSETS = [
@@ -23,6 +23,8 @@ const ASSETS = [
   './js/state.js',
   './js/ui.js',
   './js/render.js',
+  './js/idb.js',
+  './js/push.js',
   './manifest.webmanifest',
   './icons/apple-touch-icon.png',
   './icons/icon-192.png',
@@ -61,6 +63,108 @@ self.addEventListener('activate', (e) => {
 /* La página pide el relevo cuando el usuario acepta actualizar */
 self.addEventListener('message', (e) => {
   if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+/* =====================================================================
+   Avisos de vencimiento
+
+   El push llega SIN contenido: el servidor solo sabe que hoy te tocaba
+   algo, no qué. El mensaje se compone aquí leyendo IndexedDB, así que
+   los nombres e importes nunca han salido del dispositivo.
+   ===================================================================== */
+
+const BD = 'cuotify';
+const ALMACEN = 'avisos';
+
+function leerAvisos() {
+  return new Promise((resolve) => {
+    let req;
+    try {
+      req = indexedDB.open(BD, 1);
+    } catch (e) {
+      return resolve([]);
+    }
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(ALMACEN)) db.createObjectStore(ALMACEN);
+    };
+    req.onerror = () => resolve([]);
+    req.onsuccess = () => {
+      const db = req.result;
+      try {
+        const tx = db.transaction(ALMACEN, 'readonly');
+        const get = tx.objectStore(ALMACEN).get('proximos');
+        get.onsuccess = () => { resolve(get.result || []); db.close(); };
+        get.onerror = () => { resolve([]); db.close(); };
+      } catch (e) {
+        resolve([]);
+        db.close();
+      }
+    };
+  });
+}
+
+const euro = (v) =>
+  new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(v || 0);
+
+function hoyISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate()
+  ).padStart(2, '0')}`;
+}
+
+function redactar(deHoy) {
+  if (!deHoy.length) {
+    return { titulo: 'Cuotify', cuerpo: 'Revisa tus cuotas de este mes.' };
+  }
+  if (deHoy.length === 1) {
+    const a = deHoy[0];
+    return { titulo: `Hoy vence: ${a.nombre}`, cuerpo: `${euro(a.importe)} · marca la cuota como pagada` };
+  }
+  const total = deHoy.reduce((s, a) => s + (a.importe || 0), 0);
+  return {
+    titulo: `Hoy vencen ${deHoy.length} cuotas`,
+    cuerpo: `${euro(total)} en total · ${deHoy.map((a) => a.nombre).join(', ')}`,
+  };
+}
+
+self.addEventListener('push', (e) => {
+  // iOS cancela la suscripción si un push no muestra notificación,
+  // así que esto SIEMPRE tiene que acabar en showNotification.
+  e.waitUntil(
+    (async () => {
+      let deHoy = [];
+      try {
+        const hoy = hoyISO();
+        deHoy = (await leerAvisos()).filter((a) => a.fecha === hoy);
+      } catch (err) {
+        deHoy = [];
+      }
+      const { titulo, cuerpo } = redactar(deHoy);
+      await self.registration.showNotification(titulo, {
+        body: cuerpo,
+        icon: './icons/icon-192.png',
+        badge: './icons/icon-192.png',
+        tag: 'cuotify-vencimiento',
+        renotify: true,
+        data: { url: './' },
+      });
+    })()
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    (async () => {
+      const abiertas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const c of abiertas) {
+        if ('focus' in c) return c.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('./');
+    })()
+  );
 });
 
 self.addEventListener('fetch', (e) => {

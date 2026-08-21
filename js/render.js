@@ -406,7 +406,7 @@ function textoVacio(busqueda, filtro) {
   if (filtro === 'finalizados') return 'Todavía no has terminado de pagar nada.';
   if (filtro === 'activos' && state.gastos.length)
     return 'No te queda ningún pago pendiente.';
-  return 'Aún no hay gastos. Toca + para añadir tu primera compra a plazos.';
+  return 'Todavía no has registrado ninguna compra a plazos.';
 }
 
 export function renderGastos(container, { admin = false, busqueda = '', filtro = 'todos' } = {}) {
@@ -427,6 +427,16 @@ export function renderGastos(container, { admin = false, busqueda = '', filtro =
     vacio.className = 'lista-vacia';
     vacio.textContent = textoVacio(busqueda, filtro);
     container.append(vacio);
+
+    // Sin gastos y sin el + en el resumen, el estado vacío es la única salida
+    if (!state.gastos.length) {
+      const cta = document.createElement('button');
+      cta.type = 'button';
+      cta.className = 'primary-btn cta-vacio';
+      cta.textContent = 'Añadir mi primera compra';
+      cta.addEventListener('click', () => acciones.onNuevo?.());
+      container.append(cta);
+    }
     return;
   }
 
