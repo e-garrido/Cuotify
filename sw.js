@@ -11,7 +11,7 @@
    sirviéndose desde caché.
    ===================================================================== */
 
-const VERSION = 'v14';
+const VERSION = 'v15';
 const CACHE = `cuotify-${VERSION}`;
 
 const ASSETS = [
@@ -114,19 +114,61 @@ function hoyISO() {
   ).padStart(2, '0')}`;
 }
 
-function redactar(deHoy) {
-  if (!deHoy.length) {
-    return { titulo: 'Cuotify', cuerpo: 'Revisa tus cuotas de este mes.' };
-  }
+/* «30 de agosto» a partir de un ISO, montando la fecha por partes: con
+   new Date('2026-08-30') el huso puede restarte un día. */
+function fechaTexto(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' })
+    .format(new Date(y, m - 1, d));
+}
+
+const suma = (lista) => lista.reduce((s, a) => s + (a.importe || 0), 0);
+
+const cuotas = (n) => (n === 1 ? '1 cuota' : `${n} cuotas`);
+
+/* El servidor solo sabe que hoy tocaba avisar. Todo lo que dice el mensaje
+   sale de IndexedDB, así que aquí es donde hay que ser concreto: un aviso
+   que no da una cifra obliga a abrir la app para saber si importa. */
+function redactar(lista, hoy) {
+  const deHoy = lista.filter((a) => a.fecha === hoy);
+  const mes = hoy.slice(0, 7);
+  const restoMes = lista.filter((a) => a.fecha > hoy && a.fecha.slice(0, 7) === mes);
+  const siguiente = lista.find((a) => a.fecha > hoy);
+
+  const cola = restoMes.length
+    ? ` Después quedan ${cuotas(restoMes.length)} este mes: ${euro(suma(restoMes))}.`
+    : ' No te queda ninguna más este mes.';
+
   if (deHoy.length === 1) {
     const a = deHoy[0];
-    return { titulo: `Hoy vence: ${a.nombre}`, cuerpo: `${euro(a.importe)} · marca la cuota como pagada` };
+    return {
+      titulo: `Hoy vence ${a.nombre}: ${euro(a.importe)}`,
+      cuerpo: `Márcala como pagada.${cola}`,
+    };
   }
-  const total = deHoy.reduce((s, a) => s + (a.importe || 0), 0);
-  return {
-    titulo: `Hoy vencen ${deHoy.length} cuotas`,
-    cuerpo: `${euro(total)} en total · ${deHoy.map((a) => a.nombre).join(', ')}`,
-  };
+  if (deHoy.length > 1) {
+    return {
+      titulo: `Hoy vencen ${cuotas(deHoy.length)}: ${euro(suma(deHoy))}`,
+      cuerpo: `${deHoy.map((a) => a.nombre).join(', ')}.${cola}`,
+    };
+  }
+
+  /* Sin vencimientos hoy. El aviso llega igual porque el día coincide con
+     otro mes del plan, así que al menos que sirva de resumen. */
+  if (restoMes.length) {
+    const p = restoMes[0];
+    return {
+      titulo: `Este mes te quedan ${euro(suma(restoMes))}`,
+      cuerpo: `${cuotas(restoMes.length)} por pagar. La próxima, ${p.nombre} el ${fechaTexto(p.fecha)}: ${euro(p.importe)}.`,
+    };
+  }
+  if (siguiente) {
+    return {
+      titulo: 'Este mes ya lo tienes cubierto',
+      cuerpo: `La próxima cuota es ${siguiente.nombre}, el ${fechaTexto(siguiente.fecha)}: ${euro(siguiente.importe)}.`,
+    };
+  }
+  return { titulo: 'Sin cuotas pendientes', cuerpo: 'No tienes ningún vencimiento a la vista.' };
 }
 
 self.addEventListener('push', (e) => {
@@ -134,14 +176,13 @@ self.addEventListener('push', (e) => {
   // así que esto SIEMPRE tiene que acabar en showNotification.
   e.waitUntil(
     (async () => {
-      let deHoy = [];
+      let lista = [];
       try {
-        const hoy = hoyISO();
-        deHoy = (await leerAvisos()).filter((a) => a.fecha === hoy);
+        lista = await leerAvisos();
       } catch (err) {
-        deHoy = [];
+        lista = [];
       }
-      const { titulo, cuerpo } = redactar(deHoy);
+      const { titulo, cuerpo } = redactar(lista, hoyISO());
       await self.registration.showNotification(titulo, {
         body: cuerpo,
         icon: './icons/icon-192.png',

@@ -18,7 +18,12 @@
   --fs-xl: 20px; --fs-2xl: 26px; --fs-3xl: 32px; --fs-4xl: 42px;
 
   /* Estructura */
-  --tabbar-h: 76px;
+  /* La barra flota: alto de la capsula, margen lateral, y separacion del
+     borde inferior. El hueco es lo que el contenido debe dejar libre. */
+  --tabbar-h: 64px;
+  --tabbar-inset: 10px;
+  --tabbar-bottom: calc(var(--sab) * 0.4 + 8px);
+  --tabbar-hueco: calc(var(--tabbar-h) + var(--tabbar-bottom) + var(--sp-3));
   --app-max: 560px;
   --rail-w: 216px;
   --sat: env(safe-area-inset-top, 0px);
@@ -180,9 +185,9 @@ svg { display: block; }
 /* ===================== Estructura ===================== */
 .screen {
   position: fixed;
-  /* La tabbar mide tabbar-h + safe-area: si aquí solo restamos tabbar-h,
-     el final del scroll queda debajo de la barra en iPhone. */
-  inset: 0 0 calc(var(--tabbar-h) + var(--sab)) 0;
+  /* La barra flota sobre el contenido: hay que restar su alto MAS lo que
+     la separa del borde, o el final del scroll queda debajo. */
+  inset: 0 0 var(--tabbar-hueco) 0;
   /* Ojo: declarar solo `overflow-y` no deja el eje X en `visible`; la
      especificación lo convierte en `auto`, y aparecía una barra horizontal
      en cuanto algo sobresalía unos píxeles. Hay que fijar los dos. */
@@ -1067,18 +1072,28 @@ body.sin-scroll .screen { overflow: hidden; }
 /* ===================== Barra de pestañas ===================== */
 .tabbar {
   position: fixed;
-  left: 0; right: 0; bottom: 0;
-  height: calc(var(--tabbar-h) + var(--sab));
-  padding-bottom: var(--sab);
-  background: color-mix(in srgb, var(--bg) 86%, transparent);
-  border-top: 1px solid var(--border);
+  left: var(--tabbar-inset);
+  right: var(--tabbar-inset);
+  bottom: var(--tabbar-bottom);
+  height: var(--tabbar-h);
+  border-radius: var(--r-full);
   display: flex;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   z-index: 20;
+  /* Cristal: la saturacion es lo que hace que el color de debajo se cuele
+     y no quede un gris muerto. El brillo interior superior simula el canto
+     iluminado del vidrio; la sombra lo despega del fondo. */
+  background: color-mix(in srgb, var(--bg) 58%, transparent);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 10px 30px rgba(0, 0, 0, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.14);
 }
 .tab {
   flex: 1;
+  position: relative;
   color: var(--on-surface-2);
   display: flex;
   flex-direction: column;
@@ -1086,6 +1101,19 @@ body.sin-scroll .screen { overflow: hidden; }
   justify-content: center;
   gap: 3px;
   transition: color 0.15s;
+}
+/* Pastilla de vidrio detras de la pestaña activa */
+.tab::before {
+  content: '';
+  position: absolute;
+  inset: 7px 10px;
+  border-radius: var(--r-full);
+  background: transparent;
+  transition: background 0.2s var(--ease);
+}
+.tab > * { position: relative; }
+.tab.is-active::before {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 .tab-icon { width: 23px; height: 23px; }
 .tab-label { font-size: 10px; font-weight: 600; }
@@ -1139,7 +1167,7 @@ body.sin-scroll .screen { overflow: hidden; }
 .toasts {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--tabbar-h) + var(--sab) + var(--sp-3));
+  bottom: calc(var(--tabbar-hueco) + var(--sp-1));
   transform: translateX(-50%);
   z-index: 60;
   width: min(calc(100vw - 32px), 420px);
@@ -1239,8 +1267,8 @@ body.sin-scroll .screen { overflow: hidden; }
     width: var(--frame-w);
     bottom: var(--frame-gap);
     height: var(--tabbar-h);
-    padding-bottom: 0;
     background: var(--bg);
+    border: 0;
     border-top: 1px solid var(--border);
     border-radius: 0 0 var(--r-xl) var(--r-xl);
     box-shadow: var(--shadow-lg);
@@ -1277,6 +1305,7 @@ body.sin-scroll .screen { overflow: hidden; }
   }
   .tabbar {
     top: 0;
+    left: 0;
     right: auto;
     width: var(--rail-w);
     height: 100%;
@@ -1284,9 +1313,13 @@ body.sin-scroll .screen { overflow: hidden; }
     justify-content: flex-start;
     gap: var(--sp-1);
     padding: calc(var(--sat) + var(--sp-8)) var(--sp-3) var(--sp-4);
-    border-top: none;
+    background: var(--bg);
+    border: 0;
     border-right: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
   }
+  .tab::before { content: none; }
   .tab {
     flex: 0 0 auto;
     flex-direction: row;
