@@ -14,7 +14,7 @@ import { guardarAvisos, borrarAvisos } from './idb.js';
    ===================================================================== */
 
 /* Rellena esto con la URL que te dé `wrangler deploy` */
-export const SERVIDOR = 'https://cuotify-avisos.TU-SUBDOMINIO.workers.dev';
+export const SERVIDOR = 'https://cuotify-avisos.cuotify.workers.dev';
 
 const VAPID_PUBLICA =
   'BHOTMXrcWfLiwn8qBviJnGruN3qM94lhZ-zorhkzFCiHU2pV2XAbZpOob-0Oia53gDaiczCXdmUUqSXxkPMUoi0';
