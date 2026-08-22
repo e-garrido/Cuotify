@@ -477,5 +477,29 @@
 
 <script type="module" src="app.js"></script>
 
+
+<!-- ============ TEMPORAL: marca los bordes de la ventana. Quitar despues. ============ -->
+<script>
+addEventListener('load', () => {
+  const raya = (lado, color) => {
+    const d = document.createElement('div');
+    d.style.cssText = `position:fixed;left:0;right:0;${lado}:0;height:5px;background:${color};z-index:9999`;
+    document.body.appendChild(d);
+  };
+  raya('top', '#00e676');      // verde: donde EMPIEZA la ventana
+  raya('bottom', '#ff1744');   // rojo:  donde TERMINA la ventana
+
+  const caja = document.createElement('div');
+  caja.style.cssText = 'position:fixed;left:8px;right:8px;bottom:95px;z-index:9999;' +
+    'background:#000;color:#0f0;font:12px/1.6 ui-monospace,monospace;padding:8px;' +
+    'border-radius:8px;white-space:pre;text-align:center';
+  caja.textContent =
+    `screenY ${screenY}   outerHeight ${outerHeight}\n` +
+    `innerHeight ${innerHeight}   screen ${screen.height}\n` +
+    `sobra abajo: ${screen.height - (screenY + innerHeight)} px`;
+  document.body.appendChild(caja);
+  caja.onclick = () => caja.remove();
+});
+</script>
 </body>
 </html>
