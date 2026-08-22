@@ -22,10 +22,10 @@
      borde inferior. El hueco es lo que el contenido debe dejar libre. */
   --tabbar-h: 64px;
   --tabbar-inset: 10px;
-  /* Pegada al fondo de verdad: sin fraccion de safe-area. El indicador de
-     inicio de iOS se dibuja encima del cristal, que es como lo hace el
-     propio sistema con las barras flotantes. */
-  --tabbar-bottom: 6px;
+  /* Justo encima del indicador de inicio, sin pisarlo. La zona segura son
+     34 px, mas de lo que ocupa la barrita: con el 60% queda despejada y no
+     se desperdicia el resto. El minimo cubre los moviles sin indicador. */
+  --tabbar-bottom: max(14px, calc(var(--sab) * 0.6));
   --tabbar-hueco: calc(var(--tabbar-h) + var(--tabbar-bottom) + var(--sp-3));
   --app-max: 560px;
   --rail-w: 216px;
