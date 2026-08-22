@@ -124,6 +124,18 @@ export function adquiridos(gastos) {
   return gastos.filter(haEmpezado);
 }
 
+/* Un gasto fijo es un recibo recurrente, no una compra financiada: pagas
+   por un servicio mes a mes. Nunca has «adquirido» nada, asi que no debes
+   el resto del contrato. Cuenta en las cifras del mes, pero no en la
+   deuda ni en la fecha de quedar libre. */
+export function esFijo(g) {
+  return g.tipo === 'fijo';
+}
+
+export function soloPlazos(gastos) {
+  return gastos.filter((g) => !esFijo(g));
+}
+
 /* '30 ago' */
 export function fechaCorta(iso) {
   const [y, m, d] = String(iso || '').split('-').map(Number);
@@ -209,11 +221,11 @@ export function pagadoTotalDe(g) {
    aún no se debe. Sí sigue contando en las cifras del mes, porque ese
    cargo llegará a la cuenta igualmente. */
 export function deudaTotal(gastos) {
-  return adquiridos(gastos).reduce((s, g) => s + pendienteTotalDe(g), 0);
+  return soloPlazos(adquiridos(gastos)).reduce((s, g) => s + pendienteTotalDe(g), 0);
 }
 
 export function totalPagado(gastos) {
-  return adquiridos(gastos).reduce((s, g) => s + pagadoTotalDe(g), 0);
+  return soloPlazos(adquiridos(gastos)).reduce((s, g) => s + pagadoTotalDe(g), 0);
 }
 
 /* Coste financiado total (cuota x cuotas) */
@@ -234,7 +246,7 @@ export function intereses(g) {
    en state.js y este módulo no depende de nadie. */
 export function porCategoria(gastos) {
   const mapa = new Map();
-  for (const g of adquiridos(gastos)) {
+  for (const g of soloPlazos(adquiridos(gastos))) {
     const id = g.icono || 'compra';
     const e = mapa.get(id) || { id, pendiente: 0, mensual: 0, n: 0 };
     e.pendiente += pendienteTotalDe(g);
@@ -311,7 +323,7 @@ export function vencidasTotales(gastos) {
 
 /* Mes en el que se termina de pagar todo. null si no hay deuda viva */
 export function libreEn(gastos) {
-  const vivos = adquiridos(gastos).filter((g) => !terminado(g));
+  const vivos = soloPlazos(adquiridos(gastos)).filter((g) => !terminado(g));
   if (!vivos.length) return null;
   return vivos.map(finKey).sort().pop();
 }

@@ -4,9 +4,9 @@ import { state, hueDeIcono, iconoValido, nombreDeIcono } from './state.js';
 import {
   euro, euroCorto, keyLabel, keyLabelLargo, monthInfo, nowKey,
   cargosMes, pendienteMes, activosEn,
-  pagadas, terminado, finKey, mesesDelPlan, estaPagado,
+  pagadas, terminado, startKey, finKey, mesesDelPlan, estaPagado,
   deudaTotal, totalPagado, pendienteTotalDe, libreEn, vencidasDe, intereses,
-  haEmpezado, adquiridos, fechaCorta,
+  haEmpezado, adquiridos, fechaCorta, esFijo,
   porCategoria, simular, vencidasTotales,
 } from './calc.js';
 import { $, animarCifra, sinMovimiento } from './ui.js';
@@ -59,7 +59,18 @@ export function renderResumen() {
   renderProximos();
   renderCategorias();
   renderBanner();
-  renderGastos($('#gastosList'), { admin: false });
+  renderGastos($('#gastosList'), { admin: false, tipo: 'plazos' });
+  renderSeccionFijos($('#secFijos'), $('#fijosList'), false);
+}
+
+/* Los gastos fijos van en su propia seccion: no son deuda y no acaban
+   igual que una compra, asi que mezclarlos confunde las dos cosas. La
+   seccion no existe hasta que hay alguno. */
+function renderSeccionFijos(seccion, lista, admin, opciones = {}) {
+  if (!seccion || !lista) return;
+  const hay = state.gastos.some(esFijo);
+  seccion.hidden = !hay;
+  if (hay) renderGastos(lista, { admin, tipo: 'fijo', ...opciones });
 }
 
 /* Anillo: qué parte del presupuesto se lleva la financiación */
@@ -398,7 +409,8 @@ function veredicto(meses) {
 export function renderGastosList() {
   const busqueda = ($('#buscador')?.value || '').trim().toLowerCase();
   const filtro = $('#filtros .seg-btn.is-active')?.dataset.filtro || 'activos';
-  renderGastos($('#gastosListFull'), { admin: true, busqueda, filtro });
+  renderGastos($('#gastosListFull'), { admin: true, busqueda, filtro, tipo: 'plazos' });
+  renderSeccionFijos($('#secFijosFull'), $('#fijosListFull'), true, { busqueda, filtro });
 }
 
 function textoVacio(busqueda, filtro) {
@@ -409,10 +421,15 @@ function textoVacio(busqueda, filtro) {
   return 'Todavía no has registrado ninguna compra a plazos.';
 }
 
-export function renderGastos(container, { admin = false, busqueda = '', filtro = 'todos' } = {}) {
+export function renderGastos(
+  container,
+  { admin = false, busqueda = '', filtro = 'todos', tipo = 'todos' } = {}
+) {
   if (!container) return;
 
   let lista = state.gastos;
+  if (tipo === 'plazos') lista = lista.filter((g) => !esFijo(g));
+  else if (tipo === 'fijo') lista = lista.filter(esFijo);
   if (filtro === 'activos') lista = lista.filter((g) => !terminado(g));
   else if (filtro === 'finalizados') lista = lista.filter((g) => terminado(g));
   if (busqueda) lista = lista.filter((g) => g.nombre.toLowerCase().includes(busqueda));
@@ -444,6 +461,7 @@ export function renderGastos(container, { admin = false, busqueda = '', filtro =
 }
 
 function tarjetaGasto(g, admin) {
+  const fijo = esFijo(g);
   const p = pagadas(g);
   const fin = terminado(g);
   const pct = g.cuotas ? Math.round((p / g.cuotas) * 100) : 0;
@@ -492,11 +510,17 @@ function tarjetaGasto(g, admin) {
   permes.textContent = '/mes';
   cuotaEl.append(permes);
 
-  card.querySelector('.gasto-total').textContent = fin
-    ? `${g.cuotas} cuotas · terminado en ${keyLabel(finKey(g))}`
-    : empezado
-      ? `quedan ${quedan} · hasta ${keyLabel(finKey(g))}`
-      : `${g.cuotas} cuotas · hasta ${keyLabel(finKey(g))}`;
+  /* En un fijo no se habla de «cuotas que quedan» ni de dinero pendiente:
+     no debes nada, solo sabes hasta cuando lo pagas. */
+  card.querySelector('.gasto-total').textContent = fijo
+    ? fin
+      ? `terminó en ${keyLabel(finKey(g))}`
+      : `desde ${keyLabel(startKey(g))} · hasta ${keyLabel(finKey(g))}`
+    : fin
+      ? `${g.cuotas} cuotas · terminado en ${keyLabel(finKey(g))}`
+      : empezado
+        ? `quedan ${quedan} · hasta ${keyLabel(finKey(g))}`
+        : `${g.cuotas} cuotas · hasta ${keyLabel(finKey(g))}`;
 
   const track = card.querySelector('.progress-track');
   track.setAttribute('aria-valuenow', String(pct));
@@ -505,17 +529,21 @@ function tarjetaGasto(g, admin) {
   if (sinMovimiento()) fill.style.width = `${pct}%`;
   else requestAnimationFrame(() => (fill.style.width = `${pct}%`));
 
-  card.querySelector('.gasto-cuotas').textContent = fin
-    ? `${g.cuotas} de ${g.cuotas} cuotas`
-    : empezado
-      ? `${p} de ${g.cuotas} · quedan ${euro(restante)}`
-      : `${g.cuotas} cuotas · ${euro(restante)} en total`;
+  card.querySelector('.gasto-cuotas').textContent = fijo
+    ? `${p} de ${g.cuotas} ${g.cuotas === 1 ? 'mes' : 'meses'} pagados`
+    : fin
+      ? `${g.cuotas} de ${g.cuotas} cuotas`
+      : empezado
+        ? `${p} de ${g.cuotas} · quedan ${euro(restante)}`
+        : `${g.cuotas} cuotas · ${euro(restante)} en total`;
 
   /* Todavía no adquirido: no suma en la deuda */
   if (!empezado) {
     const nota = document.createElement('p');
     nota.className = 'gasto-nota gasto-nota--info';
-    nota.textContent = `Empieza el ${fechaCorta(g.fechaInicio)} · aún no cuenta como deuda`;
+    nota.textContent = fijo
+      ? `Empieza el ${fechaCorta(g.fechaInicio)}`
+      : `Empieza el ${fechaCorta(g.fechaInicio)} · aún no cuenta como deuda`;
     card.querySelector('.gasto-meta').after(nota);
   }
 

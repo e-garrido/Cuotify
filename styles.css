@@ -915,6 +915,40 @@ body.sin-scroll .screen { overflow: hidden; }
 .field input:focus { border-color: var(--accent); }
 .field input::placeholder { color: var(--on-surface-2); opacity: 0.65; }
 
+/* Elegir entre compra a plazos y gasto fijo. Dos tarjetas y no un
+   desplegable porque la diferencia importa: una es deuda y la otra no. */
+.tipo-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+.tipo-card {
+  display: grid;
+  gap: 5px;
+  justify-items: start;
+  text-align: left;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease),
+    transform 0.14s var(--ease);
+}
+.tipo-ic { width: 22px; height: 22px; color: var(--on-surface-2); }
+.tipo-titulo { font-size: var(--fs-md); font-weight: 700; line-height: 1.2; }
+.tipo-desc {
+  font-size: var(--fs-xs);
+  color: var(--on-surface-2);
+  line-height: 1.35;
+}
+.tipo-card.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.tipo-card.is-active .tipo-ic,
+.tipo-card.is-active .tipo-titulo { color: var(--accent-text); }
+.tipo-card:active { transform: scale(0.98); }
+
 .icono-picker {
   display: grid;
   grid-template-columns: repeat(8, 1fr);

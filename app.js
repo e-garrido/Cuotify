@@ -181,6 +181,41 @@ function gastoActual() {
   return state.gastos.find((g) => g.id === editandoId) || null;
 }
 
+/* ---------- Tipo de gasto ---------- */
+
+function tipoActual() {
+  return $('#fTipo').value === 'fijo' ? 'fijo' : 'plazos';
+}
+
+/* Un gasto fijo no pide cuotas: se deducen de las dos fechas. Ambas
+   inclusive, que es como lo cuenta la gente: de junio a noviembre son
+   seis recibos, no cinco. */
+function mesesEntre(desde, hasta) {
+  if (!desde || !hasta || hasta < desde) return 0;
+  const [ay, am] = desde.slice(0, 7).split('-').map(Number);
+  const [by, bm] = hasta.slice(0, 7).split('-').map(Number);
+  return (by - ay) * 12 + (bm - am) + 1;
+}
+
+function aplicarTipo(tipo) {
+  const fijo = tipo === 'fijo';
+  $('#fTipo').value = fijo ? 'fijo' : 'plazos';
+  $$('#tipoPicker .tipo-card').forEach((b) => {
+    const activo = b.dataset.tipo === $('#fTipo').value;
+    b.classList.toggle('is-active', activo);
+    b.setAttribute('aria-checked', String(activo));
+  });
+
+  $('#grupoPlazos').hidden = fijo;
+  $('#campoFin').hidden = !fijo;
+  $('#labelCuota').textContent = fijo ? 'Importe mensual' : 'Cuota mensual';
+  $('#labelFecha').textContent = fijo ? 'Primer recibo' : 'Primera cuota';
+  $('#fNombre').placeholder = fijo ? 'Ej. Seguro del móvil' : 'Ej. PlayStation 5';
+  if (fijo) $('#notaIntereses').hidden = true;
+  else actualizarNotaIntereses();
+  refrescarSimulacion();
+}
+
 function abrirNuevo() {
   pantallaPrevia = pantallaActual();
   editandoId = null;
@@ -190,6 +225,8 @@ function abrirNuevo() {
   $('#fNombre').value = '';
   ['fPrecio', 'fCuota', 'fCuotasTotales'].forEach((id) => ($(`#${id}`).value = ''));
   $('#fFecha').value = hoyISO();
+  $('#fFechaFin').value = '';
+  aplicarTipo('plazos');
   seleccionarIcono(ICONO_DEFECTO);
   $('#fDelete').hidden = true;
   $('#historialWrap').hidden = true;
@@ -212,6 +249,8 @@ function abrirEditar(id) {
   ponImporte($('#fCuota'), g.cuotaMensual);
   $('#fCuotasTotales').value = g.cuotas || '';
   $('#fFecha').value = g.fechaInicio || hoyISO();
+  $('#fFechaFin').value = g.fechaFin || '';
+  aplicarTipo(g.tipo === 'fijo' ? 'fijo' : 'plazos');
   seleccionarIcono(g.icono || sugerirIcono(g.nombre));
   $('#fDelete').hidden = false;
   renderHistorial(g);
@@ -260,6 +299,7 @@ function marcarTocado(id) {
 }
 
 function autocalcular() {
+  if (tipoActual() === 'fijo') return;
   const ultimos = tocados.filter((x) => TRIO.includes(x)).slice(-2);
   if (ultimos.length < 2) return;
   const objetivo = TRIO.find((x) => !ultimos.includes(x));
@@ -281,7 +321,10 @@ function autocalcular() {
 /* Lo que hay escrito ahora mismo en el formulario, para simular con ello */
 function borradorActual() {
   const cuota = parseImporte($('#fCuota').value);
-  const cuotas = parseEntero($('#fCuotasTotales').value, 1);
+  const cuotas =
+    tipoActual() === 'fijo'
+      ? mesesEntre($('#fFecha').value, $('#fFechaFin').value)
+      : parseEntero($('#fCuotasTotales').value, 1);
   if (!cuota || !cuotas) return null;
   return {
     cuotaMensual: cuota,
@@ -297,6 +340,7 @@ function refrescarSimulacion() {
 }
 
 function actualizarNotaIntereses() {
+  if (tipoActual() === 'fijo') return;
   const precio = parseImporte($('#fPrecio').value) || 0;
   const cuota = parseImporte($('#fCuota').value) || 0;
   const n = parseEntero($('#fCuotasTotales').value, 1) || 0;
@@ -331,25 +375,48 @@ function guardarForm() {
     return;
   }
 
-  const cuotas = parseEntero($('#fCuotasTotales').value, 1);
-  if (!cuotas) {
-    toast('Indica cuántas cuotas son', { tipo: 'error' });
-    $('#fCuotasTotales').focus();
-    return;
+  const tipo = tipoActual();
+  const fechaInicio = $('#fFecha').value || hoyISO();
+  let cuotas;
+  let fechaFin = null;
+
+  if (tipo === 'fijo') {
+    fechaFin = $('#fFechaFin').value;
+    if (!fechaFin) {
+      toast('Indica hasta cuándo lo pagas', { tipo: 'error' });
+      $('#fFechaFin').focus();
+      return;
+    }
+    if (fechaFin < fechaInicio) {
+      toast('El último recibo no puede ser anterior al primero', { tipo: 'error' });
+      $('#fFechaFin').focus();
+      return;
+    }
+    cuotas = mesesEntre(fechaInicio, fechaFin);
+  } else {
+    cuotas = parseEntero($('#fCuotasTotales').value, 1);
+    if (!cuotas) {
+      toast('Indica cuántas cuotas son', { tipo: 'error' });
+      $('#fCuotasTotales').focus();
+      return;
+    }
   }
 
   const datos = {
     nombre,
+    tipo,
     icono: $('#fIcono').value || sugerirIcono(nombre),
-    precioTotal: parseImporte($('#fPrecio').value) || 0,
+    precioTotal: tipo === 'fijo' ? 0 : parseImporte($('#fPrecio').value) || 0,
     cuotaMensual: cuota,
     cuotas,
-    fechaInicio: $('#fFecha').value || hoyISO(),
+    fechaInicio,
+    fechaFin,
   };
 
   const g = gastoActual();
   if (g) {
     Object.assign(g, datos);
+    if (tipo !== 'fijo') delete g.fechaFin;
     // Recortar pagos que se hayan quedado fuera del plan al acortarlo
     const validos = new Set(
       Array.from({ length: cuotas }, (_, i) => {
@@ -360,7 +427,9 @@ function guardarForm() {
     );
     g.pagos = g.pagos.filter((k) => validos.has(k));
   } else {
-    state.gastos.push({ id: uid(), pagos: [], ...datos });
+    const nuevo = { id: uid(), pagos: [], ...datos };
+    if (tipo !== 'fijo') delete nuevo.fechaFin;
+    state.gastos.push(nuevo);
   }
 
   if (!persistir()) return;
@@ -600,6 +669,10 @@ function conectar() {
     });
   });
   $('#fFecha').addEventListener('change', refrescarSimulacion);
+  $('#fFechaFin').addEventListener('change', refrescarSimulacion);
+  $$('#tipoPicker .tipo-card').forEach((b) => {
+    b.addEventListener('click', () => aplicarTipo(b.dataset.tipo));
+  });
 
   // El aviso de cuotas sin marcar lleva a la lista
   $('#bannerVencidas').addEventListener('click', () => go('gastos'));

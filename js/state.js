@@ -1,6 +1,6 @@
 'use strict';
 
-import { addMonthsToKey, hoyISO, nowKey } from './calc.js';
+import { addMonthsToKey, hoyISO, monthsBetween, nowKey } from './calc.js';
 
 /* =====================================================================
    Estado, persistencia y copias de seguridad.
@@ -118,11 +118,29 @@ function normIcono(valor, nombre) {
 function normGasto(raw) {
   if (!raw || typeof raw !== 'object') return null;
 
-  const cuotas = nEntero(raw.cuotas, 1, 1);
   const fechaInicio = /^\d{4}-\d{2}-\d{2}$/.test(raw.fechaInicio)
     ? raw.fechaInicio
     : hoyISO();
   const inicio = fechaInicio.slice(0, 7);
+
+  /* Dos clases de gasto:
+     · 'plazos' — una compra financiada. Tú dices cuántas cuotas son.
+     · 'fijo'   — un recibo recurrente con fecha de fin. El numero de
+                  meses no se pide: sale de las dos fechas.
+     Guardar `cuotas` tambien en los fijos permite que todo el motor de
+     cargos, pagos y vencimientos siga funcionando igual para ambos; la
+     fecha de fin manda, y `cuotas` se recalcula siempre a partir de ella. */
+  const tipo = raw.tipo === 'fijo' ? 'fijo' : 'plazos';
+  let fechaFin = null;
+  let cuotas;
+  if (tipo === 'fijo') {
+    fechaFin = /^\d{4}-\d{2}-\d{2}$/.test(raw.fechaFin) && raw.fechaFin >= fechaInicio
+      ? raw.fechaFin
+      : fechaInicio;
+    cuotas = Math.max(1, monthsBetween(inicio, fechaFin.slice(0, 7)) + 1);
+  } else {
+    cuotas = nEntero(raw.cuotas, 1, 1);
+  }
 
   // Migración v1: `pagadas: N` == las N primeras cuotas desde el inicio,
   // que es exactamente lo que asumía el cálculo antiguo.
@@ -144,11 +162,13 @@ function normGasto(raw) {
   return {
     id: String(raw.id || '') || uid(),
     nombre,
+    tipo,
     icono: normIcono(raw.icono, nombre),
-    precioTotal: nDecimal(raw.precioTotal),
+    precioTotal: tipo === 'fijo' ? 0 : nDecimal(raw.precioTotal),
     cuotaMensual: nDecimal(raw.cuotaMensual),
     cuotas,
     fechaInicio,
+    ...(tipo === 'fijo' ? { fechaFin } : {}),
     pagos,
   };
 }

@@ -229,6 +229,11 @@
       <h2 class="block-title">Mis compras a plazos</h2>
       <div id="gastosList" class="gastos-list"></div>
     </section>
+
+    <section class="block" id="secFijos" hidden>
+      <h2 class="block-title">Gastos fijos</h2>
+      <div id="fijosList" class="gastos-list"></div>
+    </section>
   </main>
 </section>
 
@@ -260,6 +265,11 @@
     </div>
 
     <div class="gastos-list" id="gastosListFull"></div>
+
+    <section class="block" id="secFijosFull" hidden>
+      <h2 class="block-title">Gastos fijos</h2>
+      <div class="gastos-list" id="fijosListFull"></div>
+    </section>
   </main>
 </section>
 
@@ -275,6 +285,23 @@
   <main class="content">
     <form class="form" id="formulario" novalidate>
       <input type="hidden" id="fIcono" value="compra">
+      <input type="hidden" id="fTipo" value="plazos">
+
+      <fieldset class="field">
+        <legend class="field-label">Qué estás apuntando</legend>
+        <div class="tipo-picker" id="tipoPicker" role="radiogroup" aria-label="Tipo de gasto">
+          <button type="button" class="tipo-card is-active" data-tipo="plazos" role="radio" aria-checked="true">
+            <svg viewBox="0 0 24 24" class="tipo-ic" aria-hidden="true"><path d="M4 7h16v12H4zM4 11h16M9 3v4M15 3v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span class="tipo-titulo">Compra a plazos</span>
+            <span class="tipo-desc">La financias y se acaba. Cuenta como deuda.</span>
+          </button>
+          <button type="button" class="tipo-card" data-tipo="fijo" role="radio" aria-checked="false">
+            <svg viewBox="0 0 24 24" class="tipo-ic" aria-hidden="true"><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+            <span class="tipo-titulo">Gasto fijo</span>
+            <span class="tipo-desc">Un recibo cada mes. No es deuda.</span>
+          </button>
+        </div>
+      </fieldset>
 
       <label class="field">
         <span class="field-label">Nombre</span>
@@ -286,7 +313,7 @@
         <div class="icono-picker" id="iconoPicker"></div>
       </fieldset>
 
-      <div class="field-grid">
+      <div class="field-grid" id="grupoPlazos">
         <label class="field">
           <span class="field-label">Precio al contado</span>
           <input id="fPrecio" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
@@ -298,15 +325,21 @@
       </div>
 
       <label class="field">
-        <span class="field-label">Cuota mensual</span>
+        <span class="field-label" id="labelCuota">Cuota mensual</span>
         <input id="fCuota" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
       </label>
 
       <p class="nota" id="notaIntereses" hidden></p>
 
       <label class="field">
-        <span class="field-label">Primera cuota</span>
+        <span class="field-label" id="labelFecha">Primera cuota</span>
         <input id="fFecha" type="date">
+      </label>
+
+      <label class="field" id="campoFin" hidden>
+        <span class="field-label">Último recibo</span>
+        <input id="fFechaFin" type="date">
+        <span class="field-ayuda">Cuándo dejas de pagarlo. Si aún no lo sabes, pon una fecha lejana y edítala luego.</span>
       </label>
 
       <!-- Impacto en los próximos meses, se actualiza al escribir -->
