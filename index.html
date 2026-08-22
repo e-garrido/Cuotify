@@ -471,5 +471,31 @@
 </noscript>
 
 <script type="module" src="app.js"></script>
+
+<!-- ============ TEMPORAL: diagnostico de medidas. Quitar despues. ============ -->
+<script>
+addEventListener('load', () => {
+  const sonda = document.createElement('div');
+  sonda.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:env(safe-area-inset-bottom,0px)';
+  document.body.appendChild(sonda);
+  const sab = sonda.offsetHeight;
+  sonda.style.height = 'env(safe-area-inset-top,0px)';
+  const sat = sonda.offsetHeight;
+  sonda.remove();
+
+  const barra = document.querySelector('.tabbar').getBoundingClientRect();
+  const caja = document.createElement('div');
+  caja.style.cssText = 'position:fixed;left:8px;right:8px;bottom:90px;z-index:999;' +
+    'background:#000;color:#0f0;font:11px/1.5 ui-monospace,monospace;padding:8px;' +
+    'border-radius:8px;white-space:pre;text-align:center';
+  caja.textContent =
+    `sat ${sat}  sab ${sab}  standalone ${!!navigator.standalone}\n` +
+    `innerHeight ${innerHeight}  clientHeight ${document.documentElement.clientHeight}\n` +
+    `visualViewport ${visualViewport ? Math.round(visualViewport.height) : '-'}  screen ${screen.height}\n` +
+    `barra: alto ${Math.round(barra.height)}  hueco abajo ${Math.round(innerHeight - barra.bottom)}`;
+  document.body.appendChild(caja);
+  caja.onclick = () => caja.remove();
+});
+</script>
 </body>
 </html>
