@@ -11,7 +11,7 @@
    sirviéndose desde caché.
    ===================================================================== */
 
-const VERSION = 'v15';
+const VERSION = 'v16';
 const CACHE = `cuotify-${VERSION}`;
 
 const ASSETS = [
@@ -104,8 +104,16 @@ function leerAvisos() {
   });
 }
 
-const euro = (v) =>
-  new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(v || 0);
+/* Sin decimales cuando son cero: en una notificación se lee de un vistazo
+   «444 €», y «444,00 €» solo añade ruido. Con céntimos sí se muestran. */
+const euro = (v) => {
+  const n = v || 0;
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+  }).format(n);
+};
 
 function hoyISO() {
   const d = new Date();
@@ -135,21 +143,18 @@ function redactar(lista, hoy) {
   const restoMes = lista.filter((a) => a.fecha > hoy && a.fecha.slice(0, 7) === mes);
   const siguiente = lista.find((a) => a.fecha > hoy);
 
-  const cola = restoMes.length
-    ? ` Después quedan ${cuotas(restoMes.length)} este mes: ${euro(suma(restoMes))}.`
-    : ' No te queda ninguna más este mes.';
+  /* El total del mes cuenta lo de hoy: si vence una cuota hoy, sigue
+     siendo una cuota de este mes. */
+  const resumenMes = `Total cuotas este mes: ${euro(suma(deHoy) + suma(restoMes))}`;
 
   if (deHoy.length === 1) {
     const a = deHoy[0];
-    return {
-      titulo: `Hoy vence ${a.nombre}: ${euro(a.importe)}`,
-      cuerpo: `Márcala como pagada.${cola}`,
-    };
+    return { titulo: `Hoy vence ${a.nombre}: ${euro(a.importe)}`, cuerpo: resumenMes };
   }
   if (deHoy.length > 1) {
     return {
       titulo: `Hoy vencen ${cuotas(deHoy.length)}: ${euro(suma(deHoy))}`,
-      cuerpo: `${deHoy.map((a) => a.nombre).join(', ')}.${cola}`,
+      cuerpo: resumenMes,
     };
   }
 
@@ -158,8 +163,8 @@ function redactar(lista, hoy) {
   if (restoMes.length) {
     const p = restoMes[0];
     return {
-      titulo: `Este mes te quedan ${euro(suma(restoMes))}`,
-      cuerpo: `${cuotas(restoMes.length)} por pagar. La próxima, ${p.nombre} el ${fechaTexto(p.fecha)}: ${euro(p.importe)}.`,
+      titulo: resumenMes,
+      cuerpo: `La próxima, ${p.nombre} el ${fechaTexto(p.fecha)}: ${euro(p.importe)}.`,
     };
   }
   if (siguiente) {
@@ -170,6 +175,7 @@ function redactar(lista, hoy) {
   }
   return { titulo: 'Sin cuotas pendientes', cuerpo: 'No tienes ningún vencimiento a la vista.' };
 }
+
 
 self.addEventListener('push', (e) => {
   // iOS cancela la suscripción si un push no muestra notificación,
