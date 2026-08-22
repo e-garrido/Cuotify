@@ -11,7 +11,12 @@
   <meta name="theme-color" content="#f2f3f7">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- Ojo con «black-translucent»: esta obsoleto y en iOS deja la ventana 62 px
+       mas corta que la pantalla pero pegada arriba, con lo que sobra una franja
+       muerta abajo. Con «default» la ventana empieza bajo la barra de estado y
+       llega hasta el borde inferior. El color de la barra lo pone theme-color,
+       que ui.js ya cambia con el tema. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Cuotify">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="icon" href="icons/icon-192.png">

@@ -201,7 +201,9 @@ svg { display: block; }
   scrollbar-width: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding-top: calc(var(--sat) + var(--sp-2));
+  /* Sin barra de estado translucida, --sat es 0: hace falta un minimo o el
+     titulo queda pegado a la barra del sistema. */
+  padding-top: max(var(--sp-4), calc(var(--sat) + var(--sp-2)));
   opacity: 0;
   transform: translateX(28px);
   transition: opacity var(--dur) ease, transform 0.32s var(--ease), visibility 0s linear var(--dur);
