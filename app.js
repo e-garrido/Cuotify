@@ -2,7 +2,7 @@
 
 import {
   state, load, save, uid, sugerirIcono, ICONOS, iconoValido, ICONO_DEFECTO,
-  serializar, nombreCopia, importar,
+  serializar, nombreCopia, importar, sim, loadSim, saveSim,
 } from './js/state.js';
 import {
   euro, hoyISO, nowKey, proximoPago, estaPagado, vencidasDe, terminado, pagadas,
@@ -15,13 +15,13 @@ import {
 import * as Push from './js/push.js';
 import {
   setAcciones, renderResumen, renderGastosList, renderHistorial, renderSimulacion,
-  resetAnimacion,
+  renderSimulador, resetAnimacion,
 } from './js/render.js';
 
 /* =====================================================================
    Navegación
    ===================================================================== */
-const ORDEN = ['resumen', 'gastos', 'add', 'ajustes'];
+const ORDEN = ['resumen', 'gastos', 'simulacion', 'add', 'ajustes'];
 const pantallas = $$('.screen');
 
 function go(which, push = true) {
@@ -48,6 +48,7 @@ function go(which, push = true) {
 
   if (which === 'resumen') renderResumen();
   if (which === 'gastos') renderGastosList();
+  if (which === 'simulacion') renderSimulador();
 
   if (push && history.state?.screen !== which) {
     history.pushState({ screen: which }, '');
@@ -648,6 +649,59 @@ function conectar() {
   );
   $('#btnBack').addEventListener('click', () => go(pantallaPrevia));
 
+  /* Simulación. Delegado, porque las filas se repintan en cada cambio. */
+  $('#simReales').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sim-toggle]');
+    if (!b) return;
+    const id = b.dataset.simToggle;
+    sim.excluidos = sim.excluidos.includes(id)
+      ? sim.excluidos.filter((x) => x !== id)
+      : [...sim.excluidos, id];
+    saveSim();
+    haptic();
+    renderSimulador();
+  });
+
+  $('#simImaginarios').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sim-quitar]');
+    if (!b) return;
+    sim.imaginarios = sim.imaginarios.filter((g) => g.id !== b.dataset.simQuitar);
+    saveSim();
+    renderSimulador();
+  });
+
+  $('#formImaginario').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const importe = parseImporte($('#siImporte').value);
+    const meses = parseEntero($('#siMeses').value, 1);
+    if (!importe) {
+      toast('Indica cuánto pagarías al mes', { tipo: 'error' });
+      $('#siImporte').focus();
+      return;
+    }
+    if (!meses) {
+      toast('Indica cuántos meses', { tipo: 'error' });
+      $('#siMeses').focus();
+      return;
+    }
+    const nombre = $('#siNombre').value.trim() || 'Gasto imaginario';
+    sim.imaginarios.push({
+      id: uid(),
+      nombre,
+      tipo: 'plazos',
+      icono: sugerirIcono(nombre),
+      precioTotal: 0,
+      cuotaMensual: importe,
+      cuotas: meses,
+      fechaInicio: hoyISO(),
+      pagos: [],
+    });
+    saveSim();
+    haptic();
+    ['siNombre', 'siImporte', 'siMeses'].forEach((id) => ($(`#${id}`).value = ''));
+    renderSimulador();
+  });
+
   // Formulario. Ojo: #fSave es type="submit", así que NO lleva listener de
   // click propio; si lo lleva, un clic dispara click + submit y guarda dos
   // veces (creaba el gasto duplicado, y al editar insertaba uno nuevo).
@@ -780,6 +834,7 @@ function registrarSW() {
    Arranque
    ===================================================================== */
 load();
+loadSim();
 aplicarTema(state.tema);
 pintarIconos();
 conectar();

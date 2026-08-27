@@ -12,6 +12,9 @@ import { addMonthsToKey, hoyISO, monthsBetween, nowKey } from './calc.js';
 
 const KEY_V2 = 'cuotify.data.v2';
 const KEY_V1 = 'gastos.data.v1';
+/* La simulación va en su propia clave: no son datos tuyos, son un tanteo.
+   Así no se cuela en la copia de seguridad ni la ensucia. */
+const KEY_SIM = 'cuotify.sim.v1';
 const FORMATO = 2;
 
 export const state = {
@@ -180,6 +183,58 @@ function normEstado(parsed) {
     gastos: Array.isArray(parsed.gastos) ? parsed.gastos.map(normGasto).filter(Boolean) : [],
     tema: ['auto', 'light', 'dark'].includes(parsed.tema) ? parsed.tema : 'auto',
   };
+}
+
+/* ---------- Simulación ----------
+   `excluidos` son ids de gastos reales que el usuario ha apagado para
+   ver cuánto le quedaría sin ellos. `imaginarios` son compras que se
+   está pensando: tienen la forma de un gasto para que el motor de
+   cargos por mes las trate igual, pero nunca entran en state.gastos. */
+
+export const sim = { excluidos: [], imaginarios: [] };
+
+function normImaginario(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const cuotaMensual = nDecimal(raw.cuotaMensual);
+  const cuotas = nEntero(raw.cuotas, 1, 1);
+  if (!cuotaMensual || !cuotas) return null;
+  const nombre = String(raw.nombre || '').trim() || 'Gasto imaginario';
+  return {
+    id: String(raw.id || '') || uid(),
+    nombre,
+    tipo: 'plazos',
+    icono: normIcono(raw.icono, nombre),
+    precioTotal: 0,
+    cuotaMensual,
+    cuotas,
+    fechaInicio: /^\d{4}-\d{2}-\d{2}$/.test(raw.fechaInicio) ? raw.fechaInicio : hoyISO(),
+    pagos: [],
+  };
+}
+
+export function loadSim() {
+  let p = null;
+  try {
+    p = JSON.parse(localStorage.getItem(KEY_SIM) || 'null');
+  } catch (e) {
+    p = null;
+  }
+  if (p && typeof p === 'object') {
+    sim.excluidos = Array.isArray(p.excluidos) ? p.excluidos.map(String) : [];
+    sim.imaginarios = Array.isArray(p.imaginarios)
+      ? p.imaginarios.map(normImaginario).filter(Boolean)
+      : [];
+  }
+  return sim;
+}
+
+export function saveSim() {
+  try {
+    localStorage.setItem(KEY_SIM, JSON.stringify(sim));
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 /* ---------- Carga y guardado ---------- */

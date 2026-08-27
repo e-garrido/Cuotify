@@ -1,6 +1,6 @@
 'use strict';
 
-import { state, hueDeIcono, iconoValido, nombreDeIcono } from './state.js';
+import { state, sim, hueDeIcono, iconoValido, nombreDeIcono } from './state.js';
 import {
   euro, euroCorto, keyLabel, keyLabelLargo, monthInfo, nowKey,
   cargosMes, pendienteMes, activosEn,
@@ -328,6 +328,148 @@ function renderCategorias() {
 }
 
 /* =====================================================================
+   Pantalla de simulación: tantear el mes sin tocar tus datos.
+
+   Dos palancas: apagar gastos reales que ya pagas, y añadir compras
+   imaginarias. Ninguna de las dos escribe en state.gastos, así que el
+   Resumen no se entera de nada.
+   ===================================================================== */
+
+export function renderSimulador() {
+  const reales = state.gastos.filter((g) => !sim.excluidos.includes(g.id));
+  const meses = Array.from({ length: MESES_VISTA }, (_, i) => {
+    const m = monthInfo(i);
+    const base = cargosMes(reales, m.key);
+    const nuevo = cargosMes(sim.imaginarios, m.key);
+    return { key: m.key, label: m.label, offset: i, base, nuevo, total: base + nuevo };
+  });
+
+  const ahora = meses[0];
+  const pres = state.presupuesto;
+  const queda = pres - ahora.total;
+  const excede = pres > 0 && ahora.total > pres;
+
+  $('#simPagarias').textContent = euro(ahora.total);
+  $('#simQuedan').textContent =
+    pres <= 0
+      ? 'Define un presupuesto en Ajustes para ver cuánto te quedaría.'
+      : excede
+        ? `Te pasarías ${euro(-queda)} de tus ${euro(pres)}`
+        : `Te quedarían ${euro(queda)} de tus ${euro(pres)}`;
+  $('#simTotalCard').classList.toggle('is-excede', excede);
+
+  const pct = pres > 0 ? Math.min(100, Math.round((ahora.total / pres) * 100)) : 0;
+  const track = $('#simTrack');
+  track.setAttribute('aria-valuenow', String(pct));
+  track.setAttribute('aria-label', `${pct}% del presupuesto`);
+  const fill = $('#simFill');
+  if (sinMovimiento()) fill.style.width = `${pct}%`;
+  else requestAnimationFrame(() => (fill.style.width = `${pct}%`));
+
+  pintarSimReales();
+  pintarSimImaginarios();
+  pintarBarras(meses, $('#simRefPantalla'), $('#simRefLabelPantalla'), $('#simBarsPantalla'),
+    'de gastos imaginarios');
+
+  $('#simVeredictoPantalla').textContent = veredictoSim(meses);
+  $('#simVeredictoPantalla').className =
+    'sim-veredicto' + (meses.some((m) => pres > 0 && m.total > pres) ? ' is-mal' : '');
+}
+
+function filaSim(g, { activo, accion, detalle }) {
+  const fila = document.createElement('div');
+  fila.className = 'sim-row' + (activo ? '' : ' is-off');
+  fila.style.setProperty('--hue', hueDeIcono(g.icono));
+  const idIcono = iconoValido(g.icono);
+  fila.innerHTML = `
+    <span class="sim-row-ic"><svg class="ic" aria-hidden="true"><use href="#ic-${idIcono}"/></svg></span>
+    <span class="sim-row-txt">
+      <span class="sim-row-nombre"></span>
+      <span class="sim-row-detalle"></span>
+    </span>
+    <span class="sim-row-accion"></span>
+  `;
+  fila.querySelector('.sim-row-nombre').textContent = g.nombre;
+  fila.querySelector('.sim-row-detalle').textContent = detalle;
+  fila.querySelector('.sim-row-accion').append(accion);
+  return fila;
+}
+
+function pintarSimReales() {
+  const cont = $('#simReales');
+  cont.innerHTML = '';
+  const lista = state.gastos.filter((g) => !terminado(g));
+
+  if (!lista.length) {
+    const p = document.createElement('p');
+    p.className = 'lista-vacia';
+    p.textContent = 'No tienes ningún gasto activo: empieza añadiendo alguno imaginario.';
+    cont.append(p);
+    return;
+  }
+
+  for (const g of lista) {
+    const activo = !sim.excluidos.includes(g.id);
+    const sw = document.createElement('button');
+    sw.type = 'button';
+    sw.className = 'sim-switch';
+    sw.dataset.simToggle = g.id;
+    sw.setAttribute('aria-pressed', String(activo));
+    sw.setAttribute('aria-label', `${activo ? 'Quitar' : 'Incluir'} ${g.nombre} en la simulación`);
+    cont.append(
+      filaSim(g, {
+        activo,
+        accion: sw,
+        detalle: `${euro(g.cuotaMensual)} al mes · hasta ${keyLabel(finKey(g))}`,
+      })
+    );
+  }
+}
+
+function pintarSimImaginarios() {
+  const cont = $('#simImaginarios');
+  cont.innerHTML = '';
+  if (!sim.imaginarios.length) {
+    const p = document.createElement('p');
+    p.className = 'lista-vacia';
+    p.textContent = 'Nada imaginario todavía. Añade abajo lo que estés pensando comprar.';
+    cont.append(p);
+    return;
+  }
+  for (const g of sim.imaginarios) {
+    const quitar = document.createElement('button');
+    quitar.type = 'button';
+    quitar.className = 'sim-quitar';
+    quitar.dataset.simQuitar = g.id;
+    quitar.setAttribute('aria-label', `Quitar ${g.nombre} de la simulación`);
+    quitar.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+    cont.append(
+      filaSim(g, {
+        activo: true,
+        accion: quitar,
+        detalle: `${euro(g.cuotaMensual)} al mes · ${g.cuotas} ${g.cuotas === 1 ? 'mes' : 'meses'}`,
+      })
+    );
+  }
+}
+
+function veredictoSim(meses) {
+  const pres = state.presupuesto;
+  if (pres <= 0) {
+    const peor = Math.max(...meses.map((m) => m.total));
+    return `Tu mes más cargado sería de ${euro(peor)}. Define un presupuesto para saber si te cabe.`;
+  }
+  const malos = meses.filter((m) => m.total > pres);
+  if (!malos.length) {
+    const peor = meses.reduce((a, b) => (b.total > a.total ? b : a));
+    return `Te cabe en los seis meses. El más apretado sería ${keyLabelLargo(peor.key)}, con ${euro(peor.total)}.`;
+  }
+  const peor = malos.reduce((a, b) => (b.total > a.total ? b : a));
+  return `Te pasarías en ${malos.length} ${malos.length === 1 ? 'mes' : 'meses'}. El peor, ${keyLabelLargo(peor.key)}: ${euro(peor.total - pres)} por encima.`;
+}
+
+/* =====================================================================
    Simulador: qué pasa con los próximos meses si añades este gasto.
    `borrador` lo arma app.js con lo que hay escrito en el formulario.
    ===================================================================== */
@@ -341,19 +483,30 @@ export function renderSimulacion(borrador) {
   panel.hidden = false;
 
   const meses = simular(state.gastos, borrador);
+  pintarBarras(meses, $('#simRef'), $('#simRefLabel'), $('#simBars'), 'de este gasto');
+
+  $('#simVeredicto').textContent = veredicto(meses);
+  $('#simVeredicto').className =
+    'sim-veredicto' + (meses.some((m) => state.presupuesto > 0 && m.total > state.presupuesto)
+      ? ' is-mal'
+      : '');
+}
+
+/* Las barras de 6 meses son las mismas en el alta y en la pantalla de
+   simulación: misma escala, misma línea de presupuesto, mismo criterio
+   de exceso. Solo cambia qué representa la parte de arriba. */
+function pintarBarras(meses, ref, refLabel, cont, queEsLoNuevo) {
   const tope =
     Math.max(...meses.map((m) => m.total), state.presupuesto > 0 ? state.presupuesto : 0) || 1;
 
   // Línea del presupuesto, con holgura para que no quede pegada al techo
   const escala = Math.max(tope * 1.12, 1);
-  const ref = $('#simRef');
   ref.hidden = state.presupuesto <= 0;
   if (state.presupuesto > 0) {
     ref.style.setProperty('--y', String(state.presupuesto / escala));
-    $('#simRefLabel').textContent = euroCorto(state.presupuesto);
+    refLabel.textContent = euroCorto(state.presupuesto);
   }
 
-  const cont = $('#simBars');
   cont.innerHTML = '';
   for (const m of meses) {
     const excede = state.presupuesto > 0 && m.total > state.presupuesto;
@@ -373,16 +526,10 @@ export function renderSimulacion(borrador) {
     slot.querySelector('.sim-nuevo').style.height = `${(m.nuevo / escala) * 100}%`;
     slot.setAttribute(
       'aria-label',
-      `${keyLabelLargo(m.key)}: ${euro(m.total)}, de los cuales ${euro(m.nuevo)} de este gasto`
+      `${keyLabelLargo(m.key)}: ${euro(m.total)}, de los cuales ${euro(m.nuevo)} ${queEsLoNuevo}`
     );
     cont.append(slot);
   }
-
-  $('#simVeredicto').textContent = veredicto(meses);
-  $('#simVeredicto').className =
-    'sim-veredicto' + (meses.some((m) => state.presupuesto > 0 && m.total > state.presupuesto)
-      ? ' is-mal'
-      : '');
 }
 
 function veredicto(meses) {

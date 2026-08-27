@@ -273,6 +273,65 @@
   </main>
 </section>
 
+<!-- ==================== Simulación ==================== -->
+<section class="screen" data-screen="simulacion">
+  <header class="app-header">
+    <div class="hello">
+      <div>
+        <p class="hello-top">Y si…</p>
+        <h1 class="hello-title">Simulación</h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="sim-total" id="simTotalCard">
+      <p class="sim-total-label">Pagarías este mes</p>
+      <p class="sim-total-cifra" id="simPagarias">0,00 €</p>
+      <p class="sim-total-sub" id="simQuedan"></p>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="simTrack">
+        <div class="progress-fill" id="simFill"></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Tus gastos</h2>
+      <p class="sim-ayuda">Desactiva lo que quieras quitar de la cuenta. No toca tus datos.</p>
+      <div id="simReales" class="sim-lista"></div>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Gastos imaginarios</h2>
+      <p class="sim-ayuda">Compras que estás pensando. Viven solo aquí: no aparecen en Resumen ni en Gastos.</p>
+      <div id="simImaginarios" class="sim-lista"></div>
+
+      <form class="sim-add" id="formImaginario" novalidate>
+        <input id="siNombre" type="text" placeholder="Ej. Portátil nuevo" autocomplete="off" aria-label="Nombre">
+        <div class="sim-add-grid">
+          <input id="siImporte" type="text" inputmode="decimal" placeholder="0,00 € al mes" autocomplete="off" aria-label="Importe mensual">
+          <input id="siMeses" type="text" inputmode="numeric" placeholder="12 meses" autocomplete="off" aria-label="Meses">
+        </div>
+        <button type="submit" class="primary-btn">Añadir a la simulación</button>
+      </form>
+    </section>
+
+    <section class="sim" id="simPanelPantalla">
+      <h2 class="sim-title">Los próximos 6 meses</h2>
+      <p class="sim-legend">
+        <span class="sim-key"><i class="sim-dot sim-dot--base"></i>Tus gastos</span>
+        <span class="sim-key"><i class="sim-dot sim-dot--nuevo"></i>Imaginarios</span>
+      </p>
+      <div class="sim-plot">
+        <div class="sim-ref" id="simRefPantalla" hidden>
+          <span class="sim-ref-label" id="simRefLabelPantalla"></span>
+        </div>
+        <div class="sim-bars" id="simBarsPantalla"></div>
+      </div>
+      <p class="sim-veredicto" id="simVeredictoPantalla"></p>
+    </section>
+  </main>
+</section>
+
 <!-- ==================== Añadir / Editar ==================== -->
 <section class="screen" data-screen="add">
   <header class="app-header form-header">
@@ -470,6 +529,10 @@
   <button type="button" class="tab" data-tab="gastos" aria-current="false">
     <svg viewBox="0 0 24 24" class="tab-icon" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     <span class="tab-label">Gastos</span>
+  </button>
+  <button type="button" class="tab" data-tab="simulacion" aria-current="false">
+    <svg viewBox="0 0 24 24" class="tab-icon" aria-hidden="true"><path d="M4 7h9M17.5 7H20M4 17h4M12.5 17H20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="7" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="17" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    <span class="tab-label">Simular</span>
   </button>
   <button type="button" class="tab" data-tab="ajustes" aria-current="false">
     <svg viewBox="0 0 24 24" class="tab-icon" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
