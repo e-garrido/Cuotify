@@ -3,7 +3,7 @@
 import { state, sim, hueDeIcono, iconoValido, nombreDeIcono } from './state.js';
 import {
   euro, euroCorto, keyLabel, keyLabelLargo, monthInfo, nowKey,
-  cargosMes, cargoDe, pendienteMes, activosEn,
+  cargosMes, pendienteMes, activosEn,
   pagadas, terminado, startKey, finKey, mesesDelPlan, estaPagado,
   deudaTotal, totalPagado, pendienteTotalDe, libreEn, vencidasDe, intereses,
   haEmpezado, adquiridos, fechaCorta, esFijo,
@@ -344,12 +344,21 @@ export function renderSimulador() {
     return { key: m.key, label: m.label, offset: i, base, nuevo, total: base + nuevo };
   });
 
-  const ahora = meses[0];
-  const pres = state.presupuesto;
-  const queda = pres - ahora.total;
-  const excede = pres > 0 && ahora.total > pres;
+  /* La cifra grande NO es el cargo de este mes: es lo que costaría al mes
+     todo lo que hay marcado, empezado o no. El sentido de esta pantalla
+     es tantear lo que todavía no pagas, así que un gasto que arranca en
+     septiembre tiene que sumar aquí. Cuándo ocurre de verdad se ve en las
+     barras de abajo, que sí respetan las fechas. */
+  const seleccionados = reales.filter((g) => !terminado(g));
+  const alMes =
+    seleccionados.reduce((t, g) => t + g.cuotaMensual, 0) +
+    sim.imaginarios.reduce((t, g) => t + g.cuotaMensual, 0);
 
-  $('#simPagarias').textContent = euro(ahora.total);
+  const pres = state.presupuesto;
+  const queda = pres - alMes;
+  const excede = pres > 0 && alMes > pres;
+
+  $('#simPagarias').textContent = euro(alMes);
   $('#simQuedan').textContent =
     pres <= 0
       ? 'Define un presupuesto en Ajustes para ver cuánto te quedaría.'
@@ -358,7 +367,7 @@ export function renderSimulador() {
         : `Te quedarían ${euro(queda)} de tus ${euro(pres)}`;
   $('#simTotalCard').classList.toggle('is-excede', excede);
 
-  const pct = pres > 0 ? Math.min(100, Math.round((ahora.total / pres) * 100)) : 0;
+  const pct = pres > 0 ? Math.min(100, Math.round((alMes / pres) * 100)) : 0;
   const track = $('#simTrack');
   track.setAttribute('aria-valuenow', String(pct));
   track.setAttribute('aria-label', `${pct}% del presupuesto`);
@@ -410,16 +419,16 @@ function pintarSimReales() {
     return;
   }
 
-  const K = nowKey();
-  let cargan = 0;
+  let futuros = 0;
 
   for (const g of lista) {
     const activo = !sim.excluidos.includes(g.id);
-    /* Lo que este gasto aporta ESTE mes, que no siempre es su cuota: si
-       su primera cuota cae en septiembre, en agosto aporta cero. Poner
-       «250 € al mes» sin mas invita a sumar a mano y no cuadrar. */
-    const cargo = cargoDe(g, K);
-    if (cargo > 0) cargan += 1;
+    /* Aquí sí sale siempre la cuota, porque aquí sí suma: lo que se está
+       simulando es tener todo esto a la vez. Pero la fila dice cuándo
+       arranca, que es lo que explica por qué las barras de abajo no son
+       planas. */
+    const empezado = haEmpezado(g);
+    if (!empezado) futuros += 1;
 
     const sw = document.createElement('button');
     sw.type = 'button';
@@ -431,18 +440,16 @@ function pintarSimReales() {
     const fila = filaSim(g, {
       activo,
       accion: sw,
-      detalle:
-        cargo > 0
-          ? `${euro(cargo)} este mes · hasta ${keyLabel(finKey(g))}`
-          : `Empieza en ${keyLabel(startKey(g))} · este mes no cobra`,
+      detalle: empezado
+        ? `${euro(g.cuotaMensual)} al mes · hasta ${keyLabel(finKey(g))}`
+        : `${euro(g.cuotaMensual)} al mes · empieza en ${keyLabel(startKey(g))}`,
     });
-    if (cargo <= 0) fila.classList.add('is-fuera');
+    if (!empezado) fila.classList.add('is-fuera');
     cont.append(fila);
   }
 
-  const fuera = lista.length - cargan;
-  ayuda.textContent = fuera
-    ? `Desactiva lo que quieras quitar de la cuenta. No toca tus datos. Ojo: ${fuera} ${fuera === 1 ? 'gasto empieza' : 'gastos empiezan'} más adelante, así que hoy ${fuera === 1 ? 'no suma' : 'no suman'} nada.`
+  ayuda.textContent = futuros
+    ? `Desactiva lo que quieras quitar de la cuenta. No toca tus datos. Arriba cuenta todo lo marcado a la vez, incluidos los ${futuros} que aún no han empezado; abajo ves mes a mes cuándo pasa de verdad.`
     : 'Desactiva lo que quieras quitar de la cuenta. No toca tus datos.';
 }
 
