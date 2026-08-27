@@ -3,7 +3,7 @@
 import { state, sim, hueDeIcono, iconoValido, nombreDeIcono } from './state.js';
 import {
   euro, euroCorto, keyLabel, keyLabelLargo, monthInfo, nowKey,
-  cargosMes, pendienteMes, activosEn,
+  cargosMes, cargoDe, pendienteMes, activosEn,
   pagadas, terminado, startKey, finKey, mesesDelPlan, estaPagado,
   deudaTotal, totalPagado, pendienteTotalDe, libreEn, vencidasDe, intereses,
   haEmpezado, adquiridos, fechaCorta, esFijo,
@@ -397,10 +397,12 @@ function filaSim(g, { activo, accion, detalle }) {
 
 function pintarSimReales() {
   const cont = $('#simReales');
+  const ayuda = $('#simAyudaReales');
   cont.innerHTML = '';
   const lista = state.gastos.filter((g) => !terminado(g));
 
   if (!lista.length) {
+    ayuda.textContent = 'Desactiva lo que quieras quitar de la cuenta. No toca tus datos.';
     const p = document.createElement('p');
     p.className = 'lista-vacia';
     p.textContent = 'No tienes ningún gasto activo: empieza añadiendo alguno imaginario.';
@@ -408,22 +410,40 @@ function pintarSimReales() {
     return;
   }
 
+  const K = nowKey();
+  let cargan = 0;
+
   for (const g of lista) {
     const activo = !sim.excluidos.includes(g.id);
+    /* Lo que este gasto aporta ESTE mes, que no siempre es su cuota: si
+       su primera cuota cae en septiembre, en agosto aporta cero. Poner
+       «250 € al mes» sin mas invita a sumar a mano y no cuadrar. */
+    const cargo = cargoDe(g, K);
+    if (cargo > 0) cargan += 1;
+
     const sw = document.createElement('button');
     sw.type = 'button';
     sw.className = 'sim-switch';
     sw.dataset.simToggle = g.id;
     sw.setAttribute('aria-pressed', String(activo));
     sw.setAttribute('aria-label', `${activo ? 'Quitar' : 'Incluir'} ${g.nombre} en la simulación`);
-    cont.append(
-      filaSim(g, {
-        activo,
-        accion: sw,
-        detalle: `${euro(g.cuotaMensual)} al mes · hasta ${keyLabel(finKey(g))}`,
-      })
-    );
+
+    const fila = filaSim(g, {
+      activo,
+      accion: sw,
+      detalle:
+        cargo > 0
+          ? `${euro(cargo)} este mes · hasta ${keyLabel(finKey(g))}`
+          : `Empieza en ${keyLabel(startKey(g))} · este mes no cobra`,
+    });
+    if (cargo <= 0) fila.classList.add('is-fuera');
+    cont.append(fila);
   }
+
+  const fuera = lista.length - cargan;
+  ayuda.textContent = fuera
+    ? `Desactiva lo que quieras quitar de la cuenta. No toca tus datos. Ojo: ${fuera} ${fuera === 1 ? 'gasto empieza' : 'gastos empiezan'} más adelante, así que hoy ${fuera === 1 ? 'no suma' : 'no suman'} nada.`
+    : 'Desactiva lo que quieras quitar de la cuenta. No toca tus datos.';
 }
 
 function pintarSimImaginarios() {

@@ -447,6 +447,11 @@ body.sin-scroll .screen { overflow: hidden; }
   white-space: nowrap;
 }
 .sim-row-detalle { font-size: var(--fs-xs); color: var(--on-surface-2); }
+/* Empieza mas adelante: hoy no suma nada, aunque si aparezca en las
+   barras de los proximos meses. Se avisa en la propia fila para que la
+   suma a mano cuadre con la cifra de arriba. */
+.sim-row.is-fuera .sim-row-detalle { color: var(--warn); font-weight: 600; }
+.sim-row.is-fuera .sim-row-ic { opacity: 0.55; }
 .sim-row-accion { flex: 0 0 auto; }
 
 /* Interruptor: un botón con aria-pressed, no un checkbox, porque la fila
