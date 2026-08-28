@@ -96,14 +96,26 @@ export function startKey(g) {
   return g.fechaInicio ? g.fechaInicio.slice(0, 7) : nowKey();
 }
 
+/* Meses aplazados: no llevan cuota, y el plan se estira uno por cada uno.
+   Con inicio en enero, 3 cuotas y febrero saltado, el plan es enero, marzo
+   y abril. Marzo NO se mueve: solo desaparece febrero y se añade un mes al
+   final. Los fijos no admiten saltos: su ultimo mes lo fija `fechaFin`. */
+export function saltados(g) {
+  return Array.isArray(g.saltados) && !esFijo(g) ? g.saltados : [];
+}
+
+export function estaSaltado(g, K) {
+  return saltados(g).includes(K);
+}
+
 /* Fecha real de la cuota nº i, respetando el día del mes.
    Si el día no existe en ese mes (31 de febrero) se ajusta al último. */
 export function fechaCuota(g, i) {
-  const [y, m, d] = (g.fechaInicio || hoyISO()).split('-').map(Number);
-  const f = new Date(y, m - 1 + i, 1);
-  const ultimoDia = new Date(f.getFullYear(), f.getMonth() + 1, 0).getDate();
-  f.setDate(Math.min(d, ultimoDia));
-  return f;
+  const dia = Number(String(g.fechaInicio || hoyISO()).slice(8, 10)) || 1;
+  const clave = mesesDelPlan(g)[i] || addMonthsToKey(startKey(g), i);
+  const [y, m] = clave.split('-').map(Number);
+  const ultimoDia = new Date(y, m, 0).getDate();
+  return new Date(y, m - 1, Math.min(dia, ultimoDia));
 }
 
 function aISO(d) {
@@ -159,8 +171,7 @@ export function terminado(g) {
 
 /* Índice del mes K dentro del plan, o -1 si cae fuera */
 export function indiceEnPlan(g, K) {
-  const m = monthsBetween(startKey(g), K);
-  return m >= 0 && m < g.cuotas ? m : -1;
+  return mesesDelPlan(g).indexOf(K);
 }
 
 export function esMesDelPlan(g, K) {
@@ -171,15 +182,43 @@ export function estaPagado(g, K) {
   return pagos(g).includes(K);
 }
 
-/* Todos los meses que abarca el plan, en orden */
+/* Todos los meses que abarca el plan, en orden y ya sin los aplazados */
 export function mesesDelPlan(g) {
   const ini = startKey(g);
-  return Array.from({ length: g.cuotas }, (_, i) => addMonthsToKey(ini, i));
+  const n = Math.max(0, Number(g.cuotas) || 0);
+  const saltar = saltados(g);
+  if (!saltar.length) return Array.from({ length: n }, (_, i) => addMonthsToKey(ini, i));
+
+  const fuera = new Set(saltar);
+  const out = [];
+  // El tope evita que unos `saltados` corruptos dejen el bucle vivo
+  for (let i = 0; out.length < n && i < n + fuera.size + 240; i++) {
+    const k = addMonthsToKey(ini, i);
+    if (!fuera.has(k)) out.push(k);
+  }
+  return out;
+}
+
+/* El calendario completo desde el inicio hasta el final, marcando cuáles
+   son saltos. Es lo que pinta el historial: un mes aplazado tiene que
+   seguir viéndose en su hueco para poder deshacerlo. */
+export function mesesConSaltos(g) {
+  const plan = new Set(mesesDelPlan(g));
+  const fin = finKey(g);
+  const out = [];
+  let k = startKey(g);
+  for (let i = 0; i < 480; i++) {
+    out.push({ key: k, saltado: !plan.has(k) });
+    if (k === fin) break;
+    k = addMonthsToKey(k, 1);
+  }
+  return out;
 }
 
 /* Último mes con cargo */
 export function finKey(g) {
-  return addMonthsToKey(startKey(g), Math.max(0, g.cuotas - 1));
+  const meses = mesesDelPlan(g);
+  return meses.length ? meses[meses.length - 1] : startKey(g);
 }
 
 /* ---------- Cargos por mes ---------- */

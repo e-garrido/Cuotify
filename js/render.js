@@ -4,7 +4,7 @@ import { state, sim, hueDeIcono, iconoValido, nombreDeIcono } from './state.js';
 import {
   euro, euroCorto, keyLabel, keyLabelLargo, monthInfo, nowKey,
   cargosMes, pendienteMes, activosEn,
-  pagadas, terminado, startKey, finKey, mesesDelPlan, estaPagado,
+  pagadas, terminado, startKey, finKey, mesesDelPlan, mesesConSaltos, estaPagado,
   deudaTotal, totalPagado, pendienteTotalDe, libreEn, vencidasDe, intereses,
   haEmpezado, adquiridos, fechaCorta, esFijo,
   porCategoria, simular, vencidasTotales,
@@ -799,7 +799,7 @@ function miniBoton(etiqueta, path, onClick, peligro = false) {
 }
 
 /* Historial de meses pagados, para el formulario de edición */
-export function renderHistorial(g) {
+export function renderHistorial(g, modo = 'pagos') {
   const cont = $('#historial');
   const wrap = $('#historialWrap');
   if (!g || !g.cuotas) {
@@ -809,22 +809,41 @@ export function renderHistorial(g) {
   wrap.hidden = false;
   cont.innerHTML = '';
   const atrasadas = new Set(vencidasDe(g));
+  const aplazando = modo === 'aplazar';
+  const fijo = esFijo(g);
 
-  for (const k of mesesDelPlan(g)) {
-    const pagado = estaPagado(g, k);
-    const vencido = atrasadas.has(k);
+  // Un fijo no se aplaza: su ultimo mes lo fija la fecha de fin
+  $('#modoHistorial').hidden = fijo;
+
+  for (const { key: k, saltado } of mesesConSaltos(g)) {
+    const pagado = !saltado && estaPagado(g, k);
+    const vencido = !saltado && atrasadas.has(k);
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'hist-chip';
+    if (saltado) b.classList.add('is-saltado');
     if (pagado) b.classList.add('is-pagado');
     if (vencido) b.classList.add('is-vencido');
     b.textContent = keyLabel(k);
     b.setAttribute('aria-pressed', String(pagado));
-    b.setAttribute(
-      'aria-label',
-      `${keyLabelLargo(k)}: ${pagado ? 'pagada' : vencido ? 'vencida sin pagar' : 'pendiente'}`
-    );
-    b.addEventListener('click', () => acciones.onToggleMes?.(g.id, k));
+
+    const estado = saltado
+      ? 'aplazada, ese mes no se paga'
+      : pagado
+        ? 'pagada'
+        : vencido
+          ? 'vencida sin pagar'
+          : 'pendiente';
+    b.setAttribute('aria-label', `${keyLabelLargo(k)}: ${estado}`);
+
+    /* En modo pagos un mes aplazado no se puede marcar: no existe cuota. */
+    if (aplazando && !fijo) {
+      b.disabled = pagado;
+      b.addEventListener('click', () => acciones.onToggleSalto?.(g.id, k));
+    } else {
+      b.disabled = saltado;
+      b.addEventListener('click', () => acciones.onToggleMes?.(g.id, k));
+    }
     cont.append(b);
   }
 }

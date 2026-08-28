@@ -1109,6 +1109,19 @@ body.sin-scroll .screen { overflow: hidden; }
 .hist-chip.is-pagado { background: var(--success-soft); color: var(--success); }
 .hist-chip.is-pagado::before { content: '✓ '; }
 .hist-chip.is-vencido { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+/* Mes aplazado: sigue ocupando su hueco en el calendario, tachado, para
+   que se vea el salto y se pueda deshacer. */
+.hist-chip.is-saltado {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border);
+  color: var(--on-surface-2);
+  opacity: 0.65;
+  text-decoration: line-through;
+}
+.hist-chip.is-saltado::before { content: '↷ '; text-decoration: none; }
+.hist-chip:disabled { opacity: 0.4; }
+#modoHistorial { margin-bottom: var(--sp-2); }
 
 .primary-btn {
   margin-top: var(--sp-2);

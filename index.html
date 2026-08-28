@@ -419,7 +419,11 @@
 
       <div class="field" id="historialWrap" hidden>
         <span class="field-label">Historial de cuotas</span>
-        <p class="field-ayuda">Toca un mes para marcarlo como pagado o desmarcarlo.</p>
+        <div class="segmented" id="modoHistorial" role="group" aria-label="Qué hace tocar un mes">
+          <button type="button" class="seg-btn is-active" data-modo="pagos" aria-pressed="true">Marcar pagos</button>
+          <button type="button" class="seg-btn" data-modo="aplazar" aria-pressed="false">Aplazar meses</button>
+        </div>
+        <p class="field-ayuda" id="ayudaHistorial">Toca un mes para marcarlo como pagado o desmarcarlo.</p>
         <div class="historial" id="historial"></div>
       </div>
 

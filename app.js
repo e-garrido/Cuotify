@@ -6,7 +6,7 @@ import {
 } from './js/state.js';
 import {
   euro, hoyISO, nowKey, proximoPago, estaPagado, vencidasDe, terminado, pagadas,
-  vencidasTotales,
+  vencidasTotales, estaSaltado, mesesDelPlan, esFijo,
 } from './js/calc.js';
 import {
   $, $$, toast, abrirHoja, cerrarHoja, conectarHoja, confirmar, aplicarTema,
@@ -169,6 +169,9 @@ let editandoId = null;
    Antes siempre volvía al resumen aunque vinieras de Gastos. */
 let pantallaPrevia = 'resumen';
 let iconoManual = false;
+/* El historial hace dos cosas distintas segun el modo: marcar pagos o
+   aplazar un mes. Un mismo gesto para las dos seria un desastre. */
+let modoHistorial = 'pagos';
 let tocados = [];
 const TRIO = ['fPrecio', 'fCuota', 'fCuotasTotales'];
 
@@ -254,7 +257,8 @@ function abrirEditar(id) {
   aplicarTipo(g.tipo === 'fijo' ? 'fijo' : 'plazos');
   seleccionarIcono(g.icono || sugerirIcono(g.nombre));
   $('#fDelete').hidden = false;
-  renderHistorial(g);
+  ponerModoHistorial('pagos');
+  renderHistorial(g, modoHistorial);
   actualizarNotaIntereses();
   refrescarSimulacion();
   go('add');
@@ -418,14 +422,18 @@ function guardarForm() {
   if (g) {
     Object.assign(g, datos);
     if (tipo !== 'fijo') delete g.fechaFin;
-    // Recortar pagos que se hayan quedado fuera del plan al acortarlo
-    const validos = new Set(
-      Array.from({ length: cuotas }, (_, i) => {
-        const [y, m] = datos.fechaInicio.slice(0, 7).split('-').map(Number);
-        const d = new Date(y, m - 1 + i, 1);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      })
-    );
+    /* Recortar lo que se haya quedado fuera del plan al acortarlo o al
+       mover la fecha: primero los saltos, que definen el plan, y con el
+       plan ya resuelto los pagos. */
+    const inicio = datos.fechaInicio.slice(0, 7);
+    if (Array.isArray(g.saltados)) {
+      // Un salto anterior al inicio o posterior al ultimo mes no aplaza
+      // nada, asi que quitarlo no cambia el plan.
+      const ultimo = mesesDelPlan(g).pop() || inicio;
+      g.saltados = g.saltados.filter((k) => k > inicio && k < ultimo);
+      if (!g.saltados.length) delete g.saltados;
+    }
+    const validos = new Set(mesesDelPlan(g));
     g.pagos = g.pagos.filter((k) => validos.has(k));
   } else {
     const nuevo = { id: uid(), pagos: [], ...datos };
@@ -485,7 +493,51 @@ function onToggleMes(id, mes) {
   else g.pagos = [...g.pagos, mes];
   if (!persistir()) return;
   haptic();
-  renderHistorial(g);
+  renderHistorial(g, modoHistorial);
+  renderResumen();
+}
+
+function ponerModoHistorial(modo) {
+  modoHistorial = modo === 'aplazar' ? 'aplazar' : 'pagos';
+  $$('#modoHistorial .seg-btn').forEach((b) => {
+    const on = b.dataset.modo === modoHistorial;
+    b.classList.toggle('is-active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  $('#ayudaHistorial').textContent =
+    modoHistorial === 'aplazar'
+      ? 'Toca un mes para saltártelo: esa cuota no se paga y el plan se alarga un mes por el final. Vuelve a tocarlo para deshacerlo.'
+      : 'Toca un mes para marcarlo como pagado o desmarcarlo.';
+}
+
+/* Aplazar un mes: esa cuota desaparece de su mes y el plan se estira uno
+   por el final. Los meses siguientes NO se mueven: con enero, febrero y
+   marzo, saltarse febrero deja enero, marzo y abril. */
+function onToggleSalto(id, mes) {
+  const g = state.gastos.find((x) => x.id === id);
+  if (!g || esFijo(g)) return;
+
+  const yaSalta = estaSaltado(g, mes);
+  if (!yaSalta && estaPagado(g, mes)) {
+    toast('Esa cuota ya está pagada: desmárcala antes de aplazarla', { tipo: 'error' });
+    return;
+  }
+  if (!yaSalta && mes === String(g.fechaInicio || '').slice(0, 7)) {
+    toast('Para mover la primera cuota, cambia la fecha de inicio', { tipo: 'error' });
+    return;
+  }
+
+  const previos = Array.isArray(g.saltados) ? g.saltados : [];
+  g.saltados = yaSalta ? previos.filter((k) => k !== mes) : [...previos, mes].sort();
+  if (!g.saltados.length) delete g.saltados;
+
+  // Al deshacer un salto el plan se acorta: puede dejar fuera un mes pagado
+  const dentro = new Set(mesesDelPlan(g));
+  g.pagos = g.pagos.filter((k) => dentro.has(k));
+
+  if (!persistir()) return;
+  haptic();
+  renderHistorial(g, modoHistorial);
   renderResumen();
 }
 
@@ -549,7 +601,10 @@ async function onEliminar(id) {
   });
 }
 
-setAcciones({ onPagar, onEditar: abrirEditar, onEliminar, onAlDia, onToggleMes, onNuevo: abrirNuevo });
+setAcciones({
+  onPagar, onEditar: abrirEditar, onEliminar, onAlDia,
+  onToggleMes, onToggleSalto, onNuevo: abrirNuevo,
+});
 
 /* =====================================================================
    Ajustes: tema, copia de seguridad, borrado
@@ -724,6 +779,13 @@ function conectar() {
   });
   $('#fFecha').addEventListener('change', refrescarSimulacion);
   $('#fFechaFin').addEventListener('change', refrescarSimulacion);
+  $$('#modoHistorial .seg-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      ponerModoHistorial(b.dataset.modo);
+      const g = gastoActual();
+      if (g) renderHistorial(g, modoHistorial);
+    });
+  });
   $$('#tipoPicker .tipo-card').forEach((b) => {
     b.addEventListener('click', () => aplicarTipo(b.dataset.tipo));
   });

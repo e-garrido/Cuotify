@@ -1,6 +1,6 @@
 'use strict';
 
-import { addMonthsToKey, hoyISO, monthsBetween, nowKey } from './calc.js';
+import { addMonthsToKey, hoyISO, mesesDelPlan, monthsBetween, nowKey } from './calc.js';
 
 /* =====================================================================
    Estado, persistencia y copias de seguridad.
@@ -154,11 +154,22 @@ function normGasto(raw) {
     const n = Math.min(cuotas, nEntero(raw.pagadas, 0, 0));
     pagos = Array.from({ length: n }, (_, i) => addMonthsToKey(inicio, i));
   }
+  /* Meses aplazados. Solo en compras a plazos: el ultimo mes de un fijo lo
+     fija su fecha de fin, y un salto lo empujaria mas alla. */
+  let saltados = [];
+  if (tipo !== 'fijo' && Array.isArray(raw.saltados)) {
+    saltados = [...new Set(raw.saltados.filter(esClaveMes))]
+      .filter((k) => k > inicio)   // saltarse el propio inicio es mover la fecha
+      .sort();
+  }
+
   // Sin duplicados y sin meses fuera del plan
-  const validos = new Set(
-    Array.from({ length: cuotas }, (_, i) => addMonthsToKey(inicio, i))
-  );
+  const plan = mesesDelPlan({ fechaInicio, cuotas, saltados });
+  const validos = new Set(plan);
   pagos = [...new Set(pagos)].filter((k) => validos.has(k));
+  // Un salto posterior al final no aplaza nada: sobra
+  const ultimo = plan[plan.length - 1] || inicio;
+  saltados = saltados.filter((k) => k < ultimo);
 
   const nombre = String(raw.nombre || '').trim() || 'Sin nombre';
 
@@ -172,6 +183,7 @@ function normGasto(raw) {
     cuotas,
     fechaInicio,
     ...(tipo === 'fijo' ? { fechaFin } : {}),
+    ...(saltados.length ? { saltados } : {}),
     pagos,
   };
 }
